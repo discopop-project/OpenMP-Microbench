@@ -175,11 +175,15 @@ void ArrayDelayFunction(unsigned int iteration, unsigned long workload, float *a
 int ReturnFalse();
 
 /// @brief Returns true, used for conditional in OpenMP constructs.
-/// @returns false
+/// @returns true
 int ReturnTrue();
 
 /// @brief Removes the stored JSON file for the corresponding benchmark,
 /// in order to avoid mixed results, and an unclean measurement collection
 void RemoveBench(std::string &bench_name);
+
+
+/// @brief Prints the name and version of the used compiler (supporting gcc and clang)
+void PrintCompilerVersion();
 
 #endif //PPT_P4_COMMONS_H
