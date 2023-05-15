@@ -33,15 +33,13 @@ int main(int argc, char **argv) {
 }
 
 void RunBenchmarks() {
-
-    Benchmark(bench_name, "DOALL", TestDoAll, Reference);
-    Benchmark(bench_name, "SHARED", TestDoAllShared, Reference);
-    Benchmark(bench_name, "SEPARATED", TestDoallSeparated, Reference);
-    Benchmark(bench_name, "FIRSTPRIVATE", TestDoallFirstprivate, Reference);
-    Benchmark(bench_name, "PRIVATE", TestDoallPrivate, Reference);
-    Benchmark(bench_name, "COPYIN", TestCopyin, Reference);
-    Benchmark(bench_name, "COPY_PRIVATE", TestCopyPrivate, Reference);
-
+    Benchmark(bench_name, "DOALL", TestDoAll, ReferenceWithoutArray);
+    Benchmark(bench_name, "SHARED", TestDoAllShared, ReferenceWithArray);
+    Benchmark(bench_name, "SEPARATED", TestDoallSeparated, ReferenceWithArray);
+    Benchmark(bench_name, "FIRSTPRIVATE", TestDoallFirstprivate, ReferenceWithArray);
+    Benchmark(bench_name, "PRIVATE", TestDoallPrivate, ReferenceWithArray);
+    Benchmark(bench_name, "COPYIN", TestCopyin, ReferenceWithArray);
+    Benchmark(bench_name, "COPY_PRIVATE", TestCopyPrivate, ReferenceWithArray);
 }
 
 // allocate variables right away to reduce measured work
@@ -148,16 +146,27 @@ void TestCopyPrivate(const DataPoint& data) {
     }
 }
 
-void Reference(const DataPoint& data) {
-     // not used, but we have an assignment in the tests so we should have it in the reference, too
-    threads = data.threads;
-
+void ReferenceWithArray(const DataPoint& data) {
+    threads = data.threads; // not used, only here for equal work in Test and Reference
     iterations = data.iterations;
     workload = data.workload;
 
     for (int rep = 0; rep < data.directive; rep++) {
         for (int i = 0; i < iterations; i++) {
             ArrayDelayFunction(i, workload, array);
+        }
+    }
+}
+
+
+void ReferenceWithoutArray(const DataPoint& data) {
+    threads = data.threads; // not used, only here for equal work in Test and Reference
+    iterations = data.iterations;
+    workload = data.workload;
+
+    for (int rep = 0; rep < data.directive; rep++) {
+        for (int i = 0; i < iterations; i++) {
+            DelayFunction(i, workload);
         }
     }
 }

@@ -31,8 +31,12 @@ void TestCopyin(const DataPoint& data);
 /// @param data the configuration for the microbenchmark
 void TestCopyPrivate(const DataPoint& data);
 
-/// @brief Reference Implementation, for calculating the overhead
+/// @brief Reference Implementation, for calculating the overhead, uses ArrayDelayFunction
 /// @param data the configuration for the reference
-void Reference(const DataPoint& data);
+void ReferenceWithArray(const DataPoint& data);
+
+/// @brief Reference Implementation, for calculating the overhead, uses DelayFunction
+/// @param data the configuration for the reference
+void ReferenceWithoutArray(const DataPoint& data);
 
 #endif //PPT_P4_DOALL_H
