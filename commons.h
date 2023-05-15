@@ -163,12 +163,27 @@ void SaveStatsForExtrapTaskTree(const std::string &bench_name, const std::string
 /// @param workload the number of calculations that should get performed
 float DelayFunction(unsigned int iteration, unsigned long workload);
 
-
 /// @brief Performs a predefined number of calculations and returns the result
 /// @param iteration the current iteration of the surrounding loop construct (optional)
 /// @param workload the number of calculations that should get performed
 /// @param a the array that should get used for computations
 void ArrayDelayFunction(unsigned int iteration, unsigned long workload, float *a);
+
+// in principle the same as DelayFunction, but less work is done for overhead=0
+#define DELAY(workload) \
+float DELAY_A; /*a needs to be local*/\
+for (int DELAY_I = 0; DELAY_I < workload; DELAY_I++) \
+{ \
+    DELAY_A += (float) DELAY_I; \
+}
+
+// in principle the same as ArrayDelayFunction, but less work is done for overhead=0
+#define ARRAY_DELAY(workload, array) \
+for (int DELAY_I = 0; DELAY_I < workload; DELAY_I++) \
+{ \
+    array[0] += (float) DELAY_I; \
+}
+
 
 /// @brief Returns false, used for conditional in OpenMP constructs.
 /// @returns false
