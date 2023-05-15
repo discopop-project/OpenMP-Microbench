@@ -765,3 +765,13 @@ int ReturnTrue() {
 void RemoveBench(std::string &bench_name) {
     std::remove((bench_name + "_runs.json").c_str());
 }
+
+void PrintCompilerVersion() {
+    if(!QUIET) {
+        #ifdef __clang__
+        printf("using %s %d.%d.%d\n", "clang", __clang_major__, __clang_minor__, __clang_patchlevel__);
+        #else
+        printf("using %s %d.%d.%d\n", "gcc", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+        #endif
+    }
+}

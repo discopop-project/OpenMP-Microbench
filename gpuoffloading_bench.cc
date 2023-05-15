@@ -21,6 +21,8 @@ int main(int argc, char **argv){
 
     ParseArgsGpu(argc, argv);
 
+    PrintCompilerVersion();
+
     if (SAVE_FOR_EXTRAP) {
         RemoveBench(bench_name);
     }
