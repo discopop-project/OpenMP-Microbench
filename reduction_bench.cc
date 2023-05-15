@@ -171,9 +171,7 @@ void ReductionTaskloopGrainsize(const DataPoint& data) {
 }
 
 void Reference(const DataPoint& data) {
-    // not used, but we have an assignment in the tests so we should have it in the reference, too
-    threads = data.threads;
-
+    threads = data.threads; // not used, only here for equal work in Test and Reference
     iterations = data.iterations;
     workload = data.workload;
     
