@@ -59,7 +59,8 @@ void ReductionFor(const DataPoint& data) {
 
         #pragma omp parallel for reduction(+ : var) shared(iterations, workload) default(none) num_threads(threads)
         for (int i = 0; i < iterations; i++) {
-            var = var + DelayFunction(i, workload);
+            DELAY(workload)
+            var = var + DELAY_A;
         }
     }
 }
@@ -75,7 +76,8 @@ void ReductionTask(const DataPoint& data) {
         for (int i = 0; i < iterations; i++) {
             #pragma omp task in_reduction(+ : var) default(none) shared(i, workload)
             {
-                var = var + DelayFunction(i, workload);
+                DELAY(workload)
+                var = var + DELAY_A;
             }
         }
     }
@@ -97,7 +99,8 @@ void ReductionTaskgroup(const DataPoint& data) {
                 for (int i = 0; i < iterations; i++) {
                     #pragma omp task in_reduction(+ : var) default(none) shared(i, workload)
                     {
-                        var = var + DelayFunction(i, workload);
+                        DELAY(workload)
+                        var = var + DELAY_A;
                     }
                 }
             }
@@ -121,7 +124,8 @@ void ReductionTaskloop(const DataPoint& data) {
 
                 #pragma omp taskloop reduction(+ : var) shared(iterations, workload) default(none)
                 for (int i = 0; i < iterations; i++) {
-                    var = var + DelayFunction(i, workload);
+                    DELAY(workload)
+                    var = var + DELAY_A;
                 }
             }
         }
@@ -142,7 +146,8 @@ void ReductionTaskloopNumTasks(const DataPoint& data) {
                 float var = 0;
                 #pragma omp taskloop reduction(+ : var) shared(iterations, workload) default(none) num_tasks(num_tasks)
                 for (int i = 0; i < iterations; i++) {
-                    var = var + DelayFunction(i, workload);
+                    DELAY(workload)
+                    var = var + DELAY_A;
                 }
             }
         }
@@ -163,7 +168,8 @@ void ReductionTaskloopGrainsize(const DataPoint& data) {
                 float var = 0;
                 #pragma omp taskloop reduction(+ : var) shared(iterations, workload) default(none) grainsize(grainsize)
                 for (int i = 0; i < iterations; i++) {
-                    var = var + DelayFunction(i, workload);
+                    DELAY(workload)
+                    var = var + DELAY_A;
                 }
             }
         }
@@ -178,7 +184,8 @@ void Reference(const DataPoint& data) {
     for (int rep = 0; rep < data.directive; rep++) {
         float var = 0;
         for (int i = 0; i < iterations; i++) {
-            var = var + DelayFunction(i, workload);
+            DELAY(workload)
+            var = var + DELAY_A;
         }
     }
 }
