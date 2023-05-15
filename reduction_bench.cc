@@ -13,6 +13,15 @@ int main(int argc, char **argv) {
 
     ParseArgs(argc, argv);
 
+    // print version of used compiler - makes it easier to spot build errors
+    if(!QUIET) {
+        #ifdef __clang__
+        printf("using %s %d.%d.%d\n", "clang", __clang_major__, __clang_minor__, __clang_patchlevel__);
+        #else
+        printf("using %s %d.%d.%d\n", "gcc", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+        #endif
+    }
+
     if (SAVE_FOR_EXTRAP) {
         RemoveBench(bench_name);
     }
@@ -41,11 +50,16 @@ void RunBenchmarks() {
 
 }
 
+// allocate variables right away to reduce measured work
+unsigned int threads;
+unsigned long long int iterations;
+unsigned long workload;
+unsigned long directive;
 
 void ReductionFor(const DataPoint& data) {
-    unsigned int threads = data.threads;
-    unsigned long long int iterations = data.iterations;
-    unsigned long workload = data.workload;
+    threads = data.threads;
+    iterations = data.iterations;
+    workload = data.workload;
 
     for (int rep = 0; rep < data.directive; rep++) {
         float var = 0;
@@ -58,9 +72,9 @@ void ReductionFor(const DataPoint& data) {
 }
 
 void ReductionTask(const DataPoint& data) {
-    unsigned int threads = data.threads;
-    unsigned long long int iterations = data.iterations;
-    unsigned long workload = data.workload;
+    threads = data.threads;
+    iterations = data.iterations;
+    workload = data.workload;
 
     for (int rep = 0; rep < data.directive; rep++) {
         float var = 0;
@@ -75,10 +89,10 @@ void ReductionTask(const DataPoint& data) {
 }
 
 void ReductionTaskgroup(const DataPoint& data) {
-    unsigned int threads = data.threads;
-    unsigned long long int iterations = data.iterations;
-    unsigned long workload = data.workload;
-    unsigned long directive = data.directive;
+    threads = data.threads;
+    iterations = data.iterations;
+    workload = data.workload;
+    directive = data.directive; // TODO this assignment is not in the reference!!
 
     #pragma omp parallel shared(iterations, workload, directive) default(none) num_threads(threads)
     {
@@ -100,10 +114,10 @@ void ReductionTaskgroup(const DataPoint& data) {
 }
 
 void ReductionTaskloop(const DataPoint& data) {
-    unsigned int threads = data.threads;
-    unsigned long long int iterations = data.iterations;
-    unsigned long workload = data.workload;
-    unsigned long directive = data.directive;
+    threads = data.threads;
+    iterations = data.iterations;
+    workload = data.workload;
+    directive = data.directive; // TODO this assignment is not in the reference
 
     #pragma omp parallel default(none) shared(directive, iterations, workload) num_threads(threads)
     {
@@ -122,10 +136,10 @@ void ReductionTaskloop(const DataPoint& data) {
 }
 
 void ReductionTaskloopNumTasks(const DataPoint& data) {
-    unsigned int threads = data.threads;
-    unsigned long long int iterations = data.iterations;
-    unsigned long workload = data.workload;
-    unsigned long directive = data.directive;
+    threads = data.threads;
+    iterations = data.iterations;
+    workload = data.workload;
+    directive = data.directive; // TODO this assignment is not in the reference
 
     #pragma omp parallel default(none) shared(directive, iterations, workload, num_tasks) num_threads(threads)
     {
@@ -143,10 +157,10 @@ void ReductionTaskloopNumTasks(const DataPoint& data) {
 }
 
 void ReductionTaskloopGrainsize(const DataPoint& data) {
-    unsigned int threads = data.threads;
-    unsigned long long int iterations = data.iterations;
-    unsigned long workload = data.workload;
-    unsigned long directive = data.directive;
+    threads = data.threads;
+    iterations = data.iterations;
+    workload = data.workload;
+    directive = data.directive; // TODO this assignment is not in the reference
 
     #pragma omp parallel default(none) shared(directive, iterations, workload, grainsize) num_threads(threads)
     {
@@ -164,10 +178,16 @@ void ReductionTaskloopGrainsize(const DataPoint& data) {
 }
 
 void Reference(const DataPoint& data) {
+    // not used, but we have an assignment in the tests so we should have it in the reference, too
+    threads = data.threads;
+
+    iterations = data.iterations;
+    workload = data.workload;
+    
     for (int rep = 0; rep < data.directive; rep++) {
         float var = 0;
-        for (int i = 0; i < data.iterations; i++) {
-            var = var + DelayFunction(i, data.workload);
+        for (int i = 0; i < iterations; i++) {
+            var = var + DelayFunction(i, workload);
         }
     }
 }

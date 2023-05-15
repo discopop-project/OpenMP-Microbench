@@ -176,7 +176,17 @@ void ReferenceAtomic(const DataPoint& data) {
 }
 
 int main(int argc, char **argv) {
+
     ParseArgs(argc, argv);
+
+    // print version of used compiler - makes it easier to spot build errors
+    if(!QUIET) {
+        #ifdef __clang__
+        printf("using %s %d.%d.%d\n", "clang", __clang_major__, __clang_minor__, __clang_patchlevel__);
+        #else
+        printf("using %s %d.%d.%d\n", "gcc", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+        #endif
+    }
 
     if (SAVE_FOR_EXTRAP) {
         RemoveBench(bench_name);

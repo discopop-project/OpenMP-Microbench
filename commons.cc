@@ -2,11 +2,14 @@
 #include "commons.h"
 #include "CLI11/CLI11.hpp"
 #include "nlohmannJson/json.hpp"
+#include <iomanip>
+#include <iostream>
 using json = nlohmann::json;
 
 // The names of the different metrics for the JSON files
-std::string METRIC_OVERHEAD = "Overhead in us";
-std::string METRIC_TIME = "Time in us";
+std::string METRIC_REFERENCE_TIME = "Reference time in us";
+std::string METRIC_TEST_TIME = "Test time in us";
+std::string METRIC_OVERHEAD = "Overhead time in us";
 
 std::vector<unsigned int> TEST_REPETITIONS{};
 std::vector<unsigned long long> NUMBER_OF_ITERATIONS{};
@@ -19,9 +22,11 @@ std::vector<unsigned int> NUMBER_OF_CHILD_NODES{};
 std::vector<unsigned long long> TOTAL_AMOUNT_OF_TASKS{};
 
 unsigned int DIRECTIVE_REPETITIONS;
+bool CLAMP_LOW{false};
 bool QUIET{false};
 bool SAVE_FOR_EXTRAP;
 bool EPCC{false};
+bool EMPTY_PARALLEL_REGION{false};
 
 json extrap_data;
 
@@ -51,14 +56,16 @@ void ParseArgs(int argc, char **argv) {
     // Example config call: schedule_bench --config ../config.ini
     app.set_config("--config", "config.ini")->expected(0, 1);
 
-    app.add_option("-R,--Repetitions", TEST_REPETITIONS, "Number of repetitions per microbenchmark (vector)");
-    app.add_option("-T,--Threads", NUMBER_OF_THREADS, "Amount of total threads (vector)");
-    app.add_option("-I,--Iterations", NUMBER_OF_ITERATIONS, "Amount of iterations inside the constructs (vector)");
-    app.add_option("-W,--Workload", AMOUNT_OF_WORKLOAD, "Workload in iterations inside the constructs (vector)");
-    app.add_option("-D,--Directive", DIRECTIVE_REPETITIONS, "Amount of times the directives should be repeated");
+    app.add_option("-R,--Repetitions", TEST_REPETITIONS, "Number of repetitions per microbenchmark (vector)(default: 5)");
+    app.add_option("-T,--Threads", NUMBER_OF_THREADS, "Amount of total threads (vector)(default: max, max/2, max/4, ..., 1)");
+    app.add_option("-I,--Iterations", NUMBER_OF_ITERATIONS, "Amount of iterations inside the constructs (vector)(default: 100)");
+    app.add_option("-W,--Workload", AMOUNT_OF_WORKLOAD, "Workload in iterations inside the constructs (vector)(default: 2)");
+    app.add_option("-D,--Directive", DIRECTIVE_REPETITIONS, "Amount of times the directives should be repeated(default: 1)");
+    app.add_flag("--ClampLow", CLAMP_LOW, "Due to variance in measurements negative overheads are possible. This flag clamps overheads to values >=1.0");
     app.add_flag("-E,--ExtraP", SAVE_FOR_EXTRAP, "Saves the data as a json readable by ExtraP");
     app.add_flag("-Q,--Quiet", QUIET, "Disables the print to stdout");
     app.add_flag("--EPCC", EPCC, "[EXPERIMENTAL] Enables overhead calculation of EPCC");
+    app.add_flag("--EmptyParallelRegion", EMPTY_PARALLEL_REGION, "Creates an empty parallel region with n threads before every benchmark to avoid measuring initial thread creation overhead");
 
     try {
         (app).parse((argc), (argv));
@@ -98,6 +105,14 @@ void Benchmark(void (&test)(const DataPoint&), DataPoint &datapoint) {
 
     std::vector<long double> result_vector;
 
+    #pragma omp parallel num_threads(datapoint.threads)
+    {
+        // Most OpenMP implementations reuse threads once they are created,
+        // so only the initial creation of threads is very costly.
+        // Since this additional overhead is not incurred every time, we do not want to measure it.
+        // This empty parallel region causes the threads to be created outside of the measured benchmark
+    }
+
     for (int rep = 0; rep < datapoint.repetitions; rep++) {
         timeval before{}, after{};
 
@@ -132,25 +147,31 @@ void Benchmark(const std::string &bench_name, const std::string &test_name,
     // OpenMP will always choose the selected number of threads this way
     omp_set_dynamic(0);
 
+    std::vector<DataPoint> reference_data;
+    std::vector<DataPoint> test_data;
     std::vector<DataPoint> overhead_data;
-    std::vector<DataPoint> time_data;
 
     // We benchmark all possible permutations from the given parameters
-    for (unsigned int test_repetitions : TEST_REPETITIONS) {
+    for (unsigned int repetitions : TEST_REPETITIONS) {
         for (unsigned long long iterations : NUMBER_OF_ITERATIONS) {
             for (unsigned long workload : AMOUNT_OF_WORKLOAD) {
-                DataPoint reference{};
-                reference.repetitions = test_repetitions;
-                reference.threads = 1;
-                reference.iterations = iterations;
-                reference.workload = workload;
-                reference.directive = DIRECTIVE_REPETITIONS;
-                Benchmark(ref, reference);
+                DataPoint single_reference_data{};
+                single_reference_data.repetitions = repetitions;
+                single_reference_data.iterations = iterations;
+                single_reference_data.workload = workload;
+                single_reference_data.directive = DIRECTIVE_REPETITIONS;
+                single_reference_data.threads = 1;
+                Benchmark(ref, single_reference_data);
 
                 for (unsigned int threads: NUMBER_OF_THREADS) {
+                    // exporting each reference measurement multiple times is not nice,
+                    // but extrap needs the exact same amount of data to work properly
+                    // TODO: we could use a separate "experiment" to avoid this
+                    single_reference_data.threads = threads;
+                    reference_data.push_back(single_reference_data);
 
                     // Preparation
-                    DataPoint single_time_data;
+                    DataPoint single_test_data;
                     DataPoint single_overhead_data;
 
                     if (EPCC) {
@@ -159,37 +180,41 @@ void Benchmark(const std::string &bench_name, const std::string &test_name,
                         iterations = iterations * threads;
                     }
 
-                    single_time_data.repetitions = test_repetitions;
-                    single_time_data.threads = threads;
-                    single_time_data.iterations = iterations;
-                    single_time_data.workload = workload;
-                    single_time_data.directive = DIRECTIVE_REPETITIONS;
+                    single_test_data.repetitions = repetitions;
+                    single_test_data.threads = threads;
+                    single_test_data.iterations = iterations;
+                    single_test_data.workload = workload;
+                    single_test_data.directive = DIRECTIVE_REPETITIONS;
 
-                    single_overhead_data.repetitions = test_repetitions;
+                    single_overhead_data.repetitions = repetitions;
                     single_overhead_data.threads = threads;
                     single_overhead_data.iterations = iterations;
                     single_overhead_data.workload = workload;
                     single_overhead_data.directive = DIRECTIVE_REPETITIONS;
 
                     // Benchmark section
-                    Benchmark(test, single_time_data);
-
+                    Benchmark(test, single_test_data);
 
                     // Finishing up
                     if (EPCC) {
                         // Reverting EPCC iteration calculation, so that we display the results with our iterations again
-                        single_time_data.iterations = iterations / threads;
+                        single_test_data.iterations = iterations / threads;
                         single_overhead_data.iterations = iterations / threads;
                     }
 
-                    time_data.push_back(single_time_data);
+                    test_data.push_back(single_test_data);
 
-                    // Overhead = (T_parallel - (T_seq / N_threads))
-                    for (int result = 0; result < single_time_data.time.size(); result++) {
-                        long double ref_time = reference.time.at(result);
-                        long double data = single_time_data.time.at(result);
+                    // Calculate Overhead := (T_parallel - (T_seq / N_threads))
+                    for (int result = 0; result < single_test_data.time.size()/*<==>repetitions*/; result++) {
+                        long double reference_time = single_reference_data.time.at(result);
+                        long double test_time = single_test_data.time.at(result);
+                        long double overhead = test_time - (reference_time / threads);
 
-                        single_overhead_data.time.push_back(data - (ref_time / threads));
+                        if(CLAMP_LOW && overhead <= 1.0){
+                            overhead = 1.0;
+                        }
+
+                        single_overhead_data.time.push_back(overhead);
                     }
 
                     overhead_data.push_back(single_overhead_data);
@@ -199,8 +224,9 @@ void Benchmark(const std::string &bench_name, const std::string &test_name,
     }
 
     if (SAVE_FOR_EXTRAP) {
+        SaveStatsForExtrap(bench_name, test_name, reference_data, METRIC_REFERENCE_TIME);
+        SaveStatsForExtrap(bench_name, test_name, test_data, METRIC_TEST_TIME);
         SaveStatsForExtrap(bench_name, test_name, overhead_data, METRIC_OVERHEAD);
-        SaveStatsForExtrap(bench_name, test_name, time_data, METRIC_TIME);
     }
 
     if (!QUIET) {
@@ -223,7 +249,7 @@ void PrintStats(const std::string &test_name,
                   << " | " << std::setw(7) << data.threads
                   << " | " << std::setw(10) << data.iterations
                   << " | " << std::setw(22) << data.workload
-                  << " | " << std::setw(14) << data.time.at(data.time.size()/2) << std::endl;
+                  << " | " << std::setw(14) << std::fixed << std::setprecision(4) << data.time.at(data.time.size()/2) << std::endl;
     }
 
     std::cout << "----------------------------------------------------------------------------" << std::endl;
@@ -454,7 +480,7 @@ void BenchmarkGpu(const std::string &bench_name,
                                                                         "_Threads_" +  std::to_string(gpu_threads);
 
                             if (SAVE_FOR_EXTRAP) {
-                                SaveStatsForExtrapGpu(bench_name, specific_experiment_name, time_data, METRIC_TIME);
+                                SaveStatsForExtrapGpu(bench_name, specific_experiment_name, time_data, METRIC_TEST_TIME);
                                 SaveStatsForExtrapGpu(bench_name, specific_experiment_name, overhead_data, METRIC_OVERHEAD);
                             }
 
@@ -655,7 +681,7 @@ void BenchmarkTaskTree(const std::string &bench_name,
     }
 
     if (SAVE_FOR_EXTRAP) {
-        SaveStatsForExtrapTaskTree(bench_name, test_name, time_data, METRIC_TIME);
+        SaveStatsForExtrapTaskTree(bench_name, test_name, time_data, METRIC_TEST_TIME);
         SaveStatsForExtrapTaskTree(bench_name, test_name, overhead_data, METRIC_OVERHEAD);
     }
 

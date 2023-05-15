@@ -53,6 +53,9 @@ extern std::vector<unsigned long long> TOTAL_AMOUNT_OF_TASKS;
 /// @brief The number of times each directive gets repeated, for mean taking
 extern unsigned int DIRECTIVE_REPETITIONS;
 
+/// @brief Due to variance in measurements negative overheads are possible. This flag clamps overheads to values >=1.0
+extern bool CLAMP_LOW;
+
 /// @brief Sets whether the medians should get printed to the stdout
 extern bool QUIET;
 
@@ -61,6 +64,9 @@ extern bool SAVE_FOR_EXTRAP;
 
 /// @brief [EXPERIMENTAL] Overhead calculation in a similar style to EPCC, for comparison
 extern bool EPCC;
+
+/// @brief Creates an empty parallel region with n threads before every benchmark to avoid measuring initial thread creation overhead
+extern bool EMPTY_PARALLEL_REGION;
 
 /// @brief Calculates the difference between before and after time measurements
 /// @param before the earlier time

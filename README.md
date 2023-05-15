@@ -31,16 +31,20 @@ If the compiler is set up correctly with all functionality needed for offloading
 
 ## Parameter Description
 ### config.ini
-| Parameter   | Description                                                                                                                                                   |
-|-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Repetitions | Space separated list of the number repetitions of each microbenchmark                                                                                         |
-| Threads     | Space separated list of the number of threads to be used for benchmarking                                                                                     |
-| Iterations  | Space separated list of the amount of times the workload should be repeated (for taskbench this is the amount of tasks)                                       |
-| Workload    | Space separated list of the amount of workload in each loop iteration                                                                                         |
-| Directive   | The amount of times a directive should be repeated                                                                                                            |
-| ExtraP      | Whether the output should be saved as a ExtraP-readable JSON format                                                                                           |
-| Quiet       | If set to true the results wont get printed to stdout                                                                                                         |
-| EPCC        | [EXPERIMENTAL] Enables EPCC-style overhead calculations. <br/> BEWARE: Some microbenchmarks behave differently than EPCC and therefore have different results |
+| Parameter       | Description                                                                                                                                                   |
+|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Repetitions     | Space separated list of the number repetitions of each microbenchmark                                                                                         |
+| Threads         | Space separated list of the number of threads to be used for benchmarking                                                                                     |
+| Iterations      | Space separated list of the amount of times the workload should be repeated (for taskbench this is the amount of tasks)                                       |
+| Workload        | Space separated list of the amount of workload in each loop iteration                                                                                         |
+| Directive       | The amount of times a directive should be repeated                                                                                                            |
+| ExtraP          | Whether the output should be saved as a ExtraP-readable JSON format                                                                                           |
+| Quiet           | If set to true the results wont get printed to stdout                                                                                                         |
+| EPCC            | [EXPERIMENTAL] Enables EPCC-style overhead calculations. <br/> BEWARE: Some microbenchmarks behave differently than EPCC and therefore have different results |
+| ClampLow        | Clamp low/negative overheads to 1.0 (ExtraP does not like values less than 1)                                                                                 |
+| EmptyParallelRegion | Add an empty parallel region before the benchmark is run. <br/>(Most OpenMP implementations have more overhead when creating threads for the first time.) |
+
+
 ### configGPU.ini
 | Parameter   | Description                                                                             |
 |-------------|-----------------------------------------------------------------------------------------|
