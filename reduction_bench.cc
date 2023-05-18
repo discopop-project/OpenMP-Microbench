@@ -9,6 +9,20 @@ std::string bench_name = "REDUCTION";
 unsigned long long num_tasks = 1;
 unsigned long long grainsize = 1;
 
+/// @brief Sets up a microbenchmark
+/// Sets the vector, because we don't want to benchmark on this.
+/// Has to get called before every microbenchmark
+void Preprocessing(const DataPoint& data) {
+    // TODO move assignments here
+}
+
+/// @brief Finishes the microbenchmark
+/// Deleting the vector, so no memory leaks exist
+/// Has to get called after every microbenchmark
+void Postprocessing() {
+    
+}
+
 int main(int argc, char **argv) {
 
     ParseArgs(argc, argv);
@@ -31,15 +45,15 @@ void RunBenchmarks() {
         num_tasks = i;
         grainsize = i;
         Benchmark(bench_name, "TASKLOOP_NUM_TASKS_" + std::to_string(num_tasks), ReductionTaskloopNumTasks,
-                  Reference);
+                  Reference, Preprocessing, Postprocessing);
         Benchmark(bench_name, "TASKLOOP_GRAINSIZE_" + std::to_string(grainsize), ReductionTaskloopGrainsize,
-                  Reference);
+                  Reference, Preprocessing, Postprocessing);
     }
 
-    Benchmark(bench_name, "FOR", ReductionFor, Reference);
-    Benchmark(bench_name, "TASKLOOP", ReductionTaskloop, Reference);
-    Benchmark(bench_name, "TASK", ReductionTask, Reference);
-    Benchmark(bench_name, "TASKGROUP", ReductionTaskgroup, Reference);
+    Benchmark(bench_name, "FOR", ReductionFor, Reference, Preprocessing, Postprocessing);
+    Benchmark(bench_name, "TASKLOOP", ReductionTaskloop, Reference, Preprocessing, Postprocessing);
+    Benchmark(bench_name, "TASK", ReductionTask, Reference, Preprocessing, Postprocessing);
+    Benchmark(bench_name, "TASKGROUP", ReductionTaskgroup, Reference, Preprocessing, Postprocessing);
 
 }
 

@@ -2,19 +2,70 @@
 #include "doall_bench.h"
 #include "commons.h"
 
-// In case this doesn't get compiled with the Environment Variables set by CMake and Make
-#ifndef ARRAY_SIZE
-int ARRAY_SIZE = 1
-#endif
-
 // Runs all microbenchmarks
 void RunBenchmarks();
 
-float array[ARRAY_SIZE];
-float array_thread_private[ARRAY_SIZE];
-#pragma omp threadprivate (array_thread_private)
+// allocate variables right away to reduce measured work
+unsigned int threads;
+unsigned long long int iterations;
+unsigned long workload;
+unsigned long directive;
+unsigned long long array_size = -1;
+float* array;
+float* array_thread_private;
+#pragma omp threadprivate(array_thread_private)
 
-std::string bench_name = "DOALL_" + std::to_string(ARRAY_SIZE);
+struct ArrayContainer {
+public:
+    size_t length;
+    float arr[];
+};
+
+
+// NOTE: reallocating the array during preprocessing and then deleting
+// it during postprocessing for every single benchmark is time-consuming...
+// simple solution: reallocate only, if new array size is different
+// drawback: on the last execution we do not call delete[]
+// this could be solved by better software design, but i can't be bothered with this today
+#define REUSE_ARRAY true
+
+/// @brief Sets up a microbenchmark
+/// Sets the vector, because we don't want to benchmark on this.
+/// Has to get called before every microbenchmark
+void Preprocessing(const DataPoint& data) {
+    ArrayContainer arrContainer{};
+    threads = data.threads;
+    iterations = data.iterations;
+    workload = data.workload;
+    directive = data.directive;
+    if(REUSE_ARRAY) {
+        if(array_size != data.array_size) {
+            delete[] array;
+            delete[] array_thread_private;
+            array_size = data.array_size;
+            array = new float[array_size]();
+            array_thread_private = new float[array_size]();
+        }// else: array is already correctly allocated
+    } else {
+        array_size = data.array_size;
+        array = new float[array_size]();
+        array_thread_private = new float[array_size]();
+    }
+}
+
+/// @brief Finishes the microbenchmark
+/// Deleting the vector, so no memory leaks exist
+/// Has to get called after every microbenchmark
+void Postprocessing() {
+    if(REUSE_ARRAY) {
+        // leave the array untouched
+    } else {
+        delete[] array;
+        delete[] array_thread_private;
+    }
+}
+
+std::string bench_name = "DOALL";
 
 
 int main(int argc, char **argv) {
@@ -33,27 +84,18 @@ int main(int argc, char **argv) {
 }
 
 void RunBenchmarks() {
-    Benchmark(bench_name, "DOALL", TestDoAll, ReferenceWithoutArray);
-    Benchmark(bench_name, "SHARED", TestDoAllShared, ReferenceWithArray);
-    Benchmark(bench_name, "SEPARATED", TestDoallSeparated, ReferenceWithArray);
-    Benchmark(bench_name, "FIRSTPRIVATE", TestDoallFirstprivate, ReferenceWithArray);
-    Benchmark(bench_name, "PRIVATE", TestDoallPrivate, ReferenceWithArray);
-    Benchmark(bench_name, "COPYIN", TestCopyin, ReferenceWithArray);
-    Benchmark(bench_name, "COPY_PRIVATE", TestCopyPrivate, ReferenceWithArray);
+    Benchmark(bench_name, "DOALL", TestDoAll, ReferenceWithoutArray, Preprocessing, Postprocessing);
+    Benchmark(bench_name, "FIRSTPRIVATE", TestDoallFirstprivate, ReferenceWithArray, Preprocessing, Postprocessing);
+    Benchmark(bench_name, "SHARED", TestDoAllShared, ReferenceWithArray, Preprocessing, Postprocessing);
+    Benchmark(bench_name, "SEPARATED", TestDoallSeparated, ReferenceWithArray, Preprocessing, Postprocessing);
+    //Benchmark(bench_name, "PRIVATE", TestDoallPrivate, ReferenceWithArray, Preprocessing, Postprocessing);
+    //Benchmark(bench_name, "COPYIN", TestCopyin, ReferenceWithArray, Preprocessing, Postprocessing);
+    //Benchmark(bench_name, "COPY_PRIVATE", TestCopyPrivate, ReferenceWithArray, Preprocessing, Postprocessing);
 }
 
-// allocate variables right away to reduce measured work
-unsigned int threads;
-unsigned long long int iterations;
-unsigned long workload;
-unsigned long directive;
-
+// TODO we do not even need to pass DataPoint anymore, its all done in preprocessing
 void TestDoallFirstprivate(const DataPoint& data) {
-    threads = data.threads;
-    iterations = data.iterations;
-    workload = data.workload;
-
-    for (int rep = 0; rep < data.directive; rep++) {
+    for (int rep = 0; rep < directive; rep++) {
         #pragma omp parallel for num_threads(threads) default(none) shared(iterations, workload) firstprivate(array)
         for (int i = 0; i < iterations; i++) {
             ARRAY_DELAY(workload, array);
@@ -62,11 +104,7 @@ void TestDoallFirstprivate(const DataPoint& data) {
 }
 
 void TestDoallPrivate(const DataPoint& data) {
-    threads = data.threads;
-    iterations = data.iterations;
-    workload = data.workload;
-
-    for (int rep = 0; rep < data.directive; rep++) {
+    for (int rep = 0; rep < directive; rep++) {
         #pragma omp parallel for num_threads(threads) default(none) shared(iterations, workload) private(array)
         for (int i = 0; i < iterations; i++) {
             ARRAY_DELAY(workload, array);
@@ -75,11 +113,6 @@ void TestDoallPrivate(const DataPoint& data) {
 }
 
 void TestDoallSeparated(const DataPoint& data) {
-    threads = data.threads;
-    iterations = data.iterations;
-    workload = data.workload;
-    directive = data.directive; // TODO this assignment is not in the reference, so there is some imbalance here
-
     #pragma omp parallel num_threads(threads) default(none) shared(directive, iterations, workload, array)
     for (int rep = 0; rep < directive; rep++) {
         #pragma omp for
@@ -90,11 +123,7 @@ void TestDoallSeparated(const DataPoint& data) {
 }
 
 void TestDoAllShared(const DataPoint& data) {
-    threads = data.threads;
-    iterations = data.iterations;
-    workload = data.workload;
-
-    for (int rep = 0; rep < data.directive; rep++) {
+    for (int rep = 0; rep < directive; rep++) {
         #pragma omp parallel for num_threads(threads) default(none) shared(iterations, workload, array)
         for (int i = 0; i < iterations; i++) {
             ARRAY_DELAY(workload, array);
@@ -103,11 +132,7 @@ void TestDoAllShared(const DataPoint& data) {
 }
 
 void TestDoAll(const DataPoint& data) {
-    threads = data.threads;
-    iterations = data.iterations;
-    workload = data.workload;
-
-    for (int rep = 0; rep < data.directive; rep++) {
+    for (int rep = 0; rep < directive; rep++) {
         #pragma omp parallel for num_threads(threads) default(none) shared(iterations, workload, array)
         for (int i = 0; i < iterations; i++) {
             DELAY(workload);
@@ -116,11 +141,7 @@ void TestDoAll(const DataPoint& data) {
 }
 
 void TestCopyin(const DataPoint& data) {
-    threads = data.threads;
-    iterations = data.iterations;
-    workload = data.workload;
-
-    for (int rep = 0; rep < data.directive; rep++) {
+    for (int rep = 0; rep < directive; rep++) {
         #pragma omp parallel for num_threads(threads) default(none) copyin(array_thread_private) shared(iterations, workload)
         for (int i = 0; i < iterations; i++) {
             ARRAY_DELAY(workload, array_thread_private);
@@ -129,11 +150,7 @@ void TestCopyin(const DataPoint& data) {
 }
 
 void TestCopyPrivate(const DataPoint& data) {
-    threads = data.threads;
-    iterations = data.iterations;
-    workload = data.workload;
-
-    for (int rep = 0; rep < data.directive; rep++) {
+    for (int rep = 0; rep < directive; rep++) {
         #pragma omp parallel num_threads(threads) default(none) shared(iterations, workload) private(array)
         {
             #pragma omp single copyprivate(array)
@@ -147,24 +164,16 @@ void TestCopyPrivate(const DataPoint& data) {
 }
 
 void ReferenceWithArray(const DataPoint& data) {
-    threads = data.threads; // not used, only here for equal work in Test and Reference
-    iterations = data.iterations;
-    workload = data.workload;
-
-    for (int rep = 0; rep < data.directive; rep++) {
+    for (int rep = 0; rep < directive; rep++) {
         for (int i = 0; i < iterations; i++) {
-            ARRAY_DELAY(workload, array);
+            DELAY(workload)
         }
     }
 }
 
 
 void ReferenceWithoutArray(const DataPoint& data) {
-    threads = data.threads; // not used, only here for equal work in Test and Reference
-    iterations = data.iterations;
-    workload = data.workload;
-
-    for (int rep = 0; rep < data.directive; rep++) {
+    for (int rep = 0; rep < directive; rep++) {
         for (int i = 0; i < iterations; i++) {
             DELAY(workload);
         }

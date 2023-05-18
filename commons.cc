@@ -11,6 +11,7 @@ std::string METRIC_REFERENCE_TIME = "Reference time in us";
 std::string METRIC_TEST_TIME = "Test time in us";
 std::string METRIC_OVERHEAD = "Overhead time in us";
 
+std::vector<unsigned long long> DATA_SIZES{};
 std::vector<unsigned int> TEST_REPETITIONS{};
 std::vector<unsigned long long> NUMBER_OF_ITERATIONS{};
 std::vector<unsigned int> NUMBER_OF_THREADS{};
@@ -56,6 +57,7 @@ void ParseArgs(int argc, char **argv) {
     // Example config call: schedule_bench --config ../config.ini
     app.set_config("--config", "config.ini")->expected(0, 1);
 
+    app.add_option("-A,--DataSizes", DATA_SIZES, "Number of floats for datasharing and reduction clauses (vector)(default: 1)");
     app.add_option("-R,--Repetitions", TEST_REPETITIONS, "Number of repetitions per microbenchmark (vector)(default: 5)");
     app.add_option("-T,--Threads", NUMBER_OF_THREADS, "Amount of total threads (vector)(default: max, max/2, max/4, ..., 1)");
     app.add_option("-I,--Iterations", NUMBER_OF_ITERATIONS, "Amount of iterations inside the constructs (vector)(default: 100)");
@@ -73,6 +75,11 @@ void ParseArgs(int argc, char **argv) {
     catch (const CLI::ParseError &e) {
         app.exit(e);
         exit(0);
+    }
+
+    sort(DATA_SIZES.begin(), DATA_SIZES.end(), std::greater<>());
+    if (DATA_SIZES.empty()) {
+        DATA_SIZES.push_back(1);
     }
 
     sort(TEST_REPETITIONS.begin(), TEST_REPETITIONS.end(), std::greater<>());
@@ -141,7 +148,8 @@ void Benchmark(void (&test)(const DataPoint&), DataPoint &datapoint) {
 }
 
 void Benchmark(const std::string &bench_name, const std::string &test_name,
-               void (&test)(const DataPoint&), void (&ref)(const DataPoint&)) {
+               void (&test)(const DataPoint&), void (&ref)(const DataPoint&),
+               void (&preprocessing)(const DataPoint&), void (&postprocessing)()) {
 
     // We set this one, so that OpenMP doesn't choose any number of threads <= num_threads
     // OpenMP will always choose the selected number of threads this way
@@ -152,72 +160,81 @@ void Benchmark(const std::string &bench_name, const std::string &test_name,
     std::vector<DataPoint> overhead_data;
 
     // We benchmark all possible permutations from the given parameters
-    for (unsigned int repetitions : TEST_REPETITIONS) {
-        for (unsigned long long iterations : NUMBER_OF_ITERATIONS) {
-            for (unsigned long workload : AMOUNT_OF_WORKLOAD) {
-                DataPoint single_reference_data{};
-                single_reference_data.repetitions = repetitions;
-                single_reference_data.iterations = iterations;
-                single_reference_data.workload = workload;
-                single_reference_data.directive = DIRECTIVE_REPETITIONS;
-                single_reference_data.threads = 1;
-                Benchmark(ref, single_reference_data);
+    for(unsigned long long int array_size : DATA_SIZES) {
+        for (unsigned int repetitions : TEST_REPETITIONS) {
+            for (unsigned long long iterations : NUMBER_OF_ITERATIONS) {
+                for (unsigned long workload : AMOUNT_OF_WORKLOAD) {
+                    DataPoint single_reference_data{};
+                    single_reference_data.array_size = array_size;
+                    single_reference_data.repetitions = repetitions;
+                    single_reference_data.iterations = iterations;
+                    single_reference_data.workload = workload;
+                    single_reference_data.directive = DIRECTIVE_REPETITIONS;
+                    single_reference_data.threads = 1;
+                    preprocessing(single_reference_data);
+                    Benchmark(ref, single_reference_data);
+                    postprocessing();
 
-                for (unsigned int threads: NUMBER_OF_THREADS) {
-                    // exporting each reference measurement multiple times is not nice,
-                    // but extrap needs the exact same amount of data to work properly
-                    // TODO: we could use a separate "experiment" to avoid this
-                    single_reference_data.threads = threads;
-                    reference_data.push_back(single_reference_data);
+                    for (unsigned int threads: NUMBER_OF_THREADS) {
+                        // exporting each reference measurement multiple times is not nice,
+                        // but extrap needs the exact same amount of data to work properly
+                        // TODO: we could use a separate "experiment" to avoid this
+                        single_reference_data.threads = threads;
+                        reference_data.push_back(single_reference_data);
 
-                    // Preparation
-                    DataPoint single_test_data;
-                    DataPoint single_overhead_data;
+                        // Preparation
+                        DataPoint single_test_data;
+                        DataPoint single_overhead_data;
 
-                    if (EPCC) {
-                        // EPCC calculates with iterations per thread, to have the same inputs as EPCC,
-                        // we have to use the same calculations
-                        iterations = iterations * threads;
-                    }
-
-                    single_test_data.repetitions = repetitions;
-                    single_test_data.threads = threads;
-                    single_test_data.iterations = iterations;
-                    single_test_data.workload = workload;
-                    single_test_data.directive = DIRECTIVE_REPETITIONS;
-
-                    single_overhead_data.repetitions = repetitions;
-                    single_overhead_data.threads = threads;
-                    single_overhead_data.iterations = iterations;
-                    single_overhead_data.workload = workload;
-                    single_overhead_data.directive = DIRECTIVE_REPETITIONS;
-
-                    // Benchmark section
-                    Benchmark(test, single_test_data);
-
-                    // Finishing up
-                    if (EPCC) {
-                        // Reverting EPCC iteration calculation, so that we display the results with our iterations again
-                        single_test_data.iterations = iterations / threads;
-                        single_overhead_data.iterations = iterations / threads;
-                    }
-
-                    test_data.push_back(single_test_data);
-
-                    // Calculate Overhead := (T_parallel - (T_seq / N_threads))
-                    for (int result = 0; result < single_test_data.time.size()/*<==>repetitions*/; result++) {
-                        long double reference_time = single_reference_data.time.at(result);
-                        long double test_time = single_test_data.time.at(result);
-                        long double overhead = test_time - (reference_time / threads);
-
-                        if(CLAMP_LOW && overhead <= 1.0){
-                            overhead = 1.0;
+                        if (EPCC) {
+                            // EPCC calculates with iterations per thread, to have the same inputs as EPCC,
+                            // we have to use the same calculations
+                            iterations = iterations * threads;
                         }
 
-                        single_overhead_data.time.push_back(overhead);
-                    }
+                        single_test_data.array_size = array_size;
+                        single_test_data.repetitions = repetitions;
+                        single_test_data.threads = threads;
+                        single_test_data.iterations = iterations;
+                        single_test_data.workload = workload;
+                        single_test_data.directive = DIRECTIVE_REPETITIONS;
 
-                    overhead_data.push_back(single_overhead_data);
+                        single_overhead_data.array_size = array_size;
+                        single_overhead_data.repetitions = repetitions;
+                        single_overhead_data.threads = threads;
+                        single_overhead_data.iterations = iterations;
+                        single_overhead_data.workload = workload;
+                        single_overhead_data.directive = DIRECTIVE_REPETITIONS;
+
+                        // Benchmark section
+                        preprocessing(single_test_data);
+                        Benchmark(test, single_test_data);
+                        postprocessing();
+
+                        // Finishing up
+                        if (EPCC) {
+                            // Reverting EPCC iteration calculation, so that we display the results with our iterations again
+                            single_test_data.iterations = iterations / threads;
+                            single_overhead_data.iterations = iterations / threads;
+                        }
+
+                        test_data.push_back(single_test_data);
+
+                        // Calculate Overhead := (T_parallel - (T_seq / N_threads))
+                        for (int result = 0; result < single_test_data.time.size()/*<==>repetitions*/; result++) {
+                            long double reference_time = single_reference_data.time.at(result);
+                            long double test_time = single_test_data.time.at(result);
+                            long double overhead = test_time - (reference_time / threads);
+
+                            if(CLAMP_LOW && overhead <= 1.0){
+                                overhead = 1.0;
+                            }
+
+                            single_overhead_data.time.push_back(overhead);
+                        }
+
+                        overhead_data.push_back(single_overhead_data);
+                    }
                 }
             }
         }
@@ -240,15 +257,16 @@ void PrintStats(const std::string &test_name,
 {
     std::cout << "Name of test: " << test_name << std::endl;
 
-    std::cout << "Repetitions | Threads | Iterations | Workload in iterations | Overhead in us " << std::endl;
+    std::cout << "Repetitions | DataSize | Threads | Iterations | Workload | Overhead in us " << std::endl;
 
     for (auto data : datapoints) {
         sort(data.time.begin(), data.time.end());
 
         std::cout << std::setw(11) << data.repetitions
+                  << " | " << std::setw(8) << data.array_size
                   << " | " << std::setw(7) << data.threads
                   << " | " << std::setw(10) << data.iterations
-                  << " | " << std::setw(22) << data.workload
+                  << " | " << std::setw(8) << data.workload
                   << " | " << std::setw(14) << std::fixed << std::setprecision(4) << data.time.at(data.time.size()/2) << std::endl;
     }
 
@@ -280,7 +298,7 @@ void SaveStatsForExtrap(const std::string &bench_name,
 
     for (const auto &data : datapoints)
     {
-        points["point"] = {data.threads, data.workload, data.iterations};
+        points["point"] = {data.array_size, data.threads, data.workload, data.iterations};
         for (auto points_at_x : data.time){
             points_array += points_at_x;
         }
@@ -293,7 +311,7 @@ void SaveStatsForExtrap(const std::string &bench_name,
 
 
     extrap_data["measurements"][test_name][metric_type] = values_and_points;
-    extrap_data["parameters"] = {"Threads", "Workload", "Iterations"};
+    extrap_data["parameters"] = {"Array_Size", "Threads", "Workload", "Iterations"};
 
     file_to_write_to << std::setw(2) << extrap_data << std::endl;
 }
@@ -623,7 +641,9 @@ void ParseArgsTaskTree(int argc, char **argv)
 void BenchmarkTaskTree(const std::string &bench_name,
                        const std::string &test_name,
                        void (&test)(const DataPoint&),
-                       void (&ref)(const DataPoint&)) {
+                       void (&ref)(const DataPoint&),
+                       void preprocessing(const DataPoint&),
+                       void postprocessing()) {
     // We set this one, so that OpenMP doesn't choose any number of threads <= num_threads
     // OpenMP will always choose the selected number of threads this way
     omp_set_dynamic(0);
@@ -639,8 +659,9 @@ void BenchmarkTaskTree(const std::string &bench_name,
                 reference.child_nodes = 0;
                 reference.workload = workload;
                 reference.directive = DIRECTIVE_REPETITIONS;
-
+                preprocessing(reference);
                 Benchmark(ref, reference);
+                postprocessing();
 
                 for (unsigned long long child_nodes: NUMBER_OF_CHILD_NODES) {
 
@@ -661,7 +682,9 @@ void BenchmarkTaskTree(const std::string &bench_name,
                     single_overhead_data.directive = DIRECTIVE_REPETITIONS;
 
                     // Benchmark section
+                    preprocessing(single_time_data);
                     Benchmark(test, single_time_data);
+                    postprocessing();
 
                     // Finishing up
                     time_data.push_back(single_time_data);

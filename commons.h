@@ -26,6 +26,9 @@ public:
     unsigned int gpu_threads;
 };
 
+/// @brief The sizes of the arrays used in data sharing and reduction clauses
+extern std::vector<unsigned long long> ARRAY_SIZES;
+
 /// @brief The number of times each test should get repeated, for median taking
 extern std::vector<unsigned int> TEST_REPETITIONS;
 
@@ -92,7 +95,7 @@ void ParseArgsTaskTree(int argc , char **argv);
 /// @param test the reference to the function to get benchmarked
 /// @param ref the reference to the reference function, typically a serial implementation of the same code
 void Benchmark(const std::string &bench_name, const std::string &test_name, void (&test)(const DataPoint&),
-               void (&ref)(const DataPoint&));
+               void (&ref)(const DataPoint&), void (&preprocessing)(const DataPoint&), void (&postprocessing)());
 
 /// @brief These benchmark methods are getting called by the microbenchmarks itself
 /// @param bench_name the name of the microbenchmark
