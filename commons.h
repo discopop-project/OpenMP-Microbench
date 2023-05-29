@@ -62,6 +62,9 @@ extern bool QUIET;
 /// @brief Sets whether all measurements should get saved in a JSON file for ExtraP
 extern bool SAVE_FOR_EXTRAP;
 
+/// @brief Specifies the name of the JSON file for results (readable by extrap)
+extern std::string OUTFILE_NAME;
+
 /// @brief [EXPERIMENTAL] Overhead calculation in a similar style to EPCC, for comparison
 extern bool EPCC;
 
