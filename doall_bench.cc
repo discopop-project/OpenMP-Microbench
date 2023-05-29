@@ -34,12 +34,12 @@ int main(int argc, char **argv) {
 
 void RunBenchmarks() {
     Benchmark(bench_name, "DOALL", TestDoAll, ReferenceWithoutArray);
-    Benchmark(bench_name, "SHARED", TestDoAllShared, ReferenceWithArray);
-    Benchmark(bench_name, "SEPARATED", TestDoallSeparated, ReferenceWithArray);
-    Benchmark(bench_name, "FIRSTPRIVATE", TestDoallFirstprivate, ReferenceWithArray);
-    Benchmark(bench_name, "PRIVATE", TestDoallPrivate, ReferenceWithArray);
-    Benchmark(bench_name, "COPYIN", TestCopyin, ReferenceWithArray);
-    Benchmark(bench_name, "COPY_PRIVATE", TestCopyPrivate, ReferenceWithArray);
+    //Benchmark(bench_name, "SHARED", TestDoAllShared, ReferenceWithArray);
+    //Benchmark(bench_name, "SEPARATED", TestDoallSeparated, ReferenceWithArray);
+    //Benchmark(bench_name, "FIRSTPRIVATE", TestDoallFirstprivate, ReferenceWithArray);
+    //Benchmark(bench_name, "PRIVATE", TestDoallPrivate, ReferenceWithArray);
+    //Benchmark(bench_name, "COPYIN", TestCopyin, ReferenceWithArray);
+    //Benchmark(bench_name, "COPY_PRIVATE", TestCopyPrivate, ReferenceWithArray);
 }
 
 // allocate variables right away to reduce measured work
