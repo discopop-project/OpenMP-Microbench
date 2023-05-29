@@ -24,7 +24,8 @@ std::vector<unsigned long long> TOTAL_AMOUNT_OF_TASKS{};
 unsigned int DIRECTIVE_REPETITIONS;
 bool CLAMP_LOW{false};
 bool QUIET{false};
-bool SAVE_FOR_EXTRAP;
+bool SAVE_FOR_EXTRAP{false};
+std::string OUTFILE_NAME = "";
 bool EPCC{false};
 bool EMPTY_PARALLEL_REGION{false};
 
@@ -61,11 +62,11 @@ void ParseArgs(int argc, char **argv) {
     app.add_option("-I,--Iterations", NUMBER_OF_ITERATIONS, "Amount of iterations inside the constructs (vector)(default: 100)");
     app.add_option("-W,--Workload", AMOUNT_OF_WORKLOAD, "Workload in iterations inside the constructs (vector)(default: 2)");
     app.add_option("-D,--Directive", DIRECTIVE_REPETITIONS, "Amount of times the directives should be repeated(default: 1)");
-    app.add_flag("--ClampLow", CLAMP_LOW, "Due to variance in measurements negative overheads are possible. This flag clamps overheads to values >=1.0");
-    app.add_flag("-E,--ExtraP", SAVE_FOR_EXTRAP, "Saves the data as a json readable by ExtraP");
+    app.add_option("-O,--Output", OUTFILE_NAME, "Save the data in json format (readable by ExtraP) at the specified location");
+    app.add_flag("-P,--EmptyParallelRegion", EMPTY_PARALLEL_REGION, "Creates an empty parallel region with n threads before every benchmark to avoid measuring initial thread creation overhead");
+    app.add_flag("-E,--EPCC", EPCC, "[EXPERIMENTAL] Enables overhead calculation of EPCC");
     app.add_flag("-Q,--Quiet", QUIET, "Disables the print to stdout");
-    app.add_flag("--EPCC", EPCC, "[EXPERIMENTAL] Enables overhead calculation of EPCC");
-    app.add_flag("--EmptyParallelRegion", EMPTY_PARALLEL_REGION, "Creates an empty parallel region with n threads before every benchmark to avoid measuring initial thread creation overhead");
+    app.add_flag("-C,--Clamp", CLAMP_LOW, "Due to variance in measurements negative overheads are possible. This flag clamps overheads to values >=1.0");
 
     try {
         (app).parse((argc), (argv));
@@ -99,6 +100,8 @@ void ParseArgs(int argc, char **argv) {
     if (DIRECTIVE_REPETITIONS <= 0) {
         DIRECTIVE_REPETITIONS = 1;
     }
+
+    SAVE_FOR_EXTRAP = OUTFILE_NAME != "";
 }
 
 void Benchmark(void (&test)(const DataPoint&), DataPoint &datapoint) {
@@ -256,11 +259,11 @@ void PrintStats(const std::string &test_name,
 }
 
 
-void SaveStatsForExtrap(const std::string &bench_name,
+void SaveStatsForExtrap(const std::string &bench_name, // TODO remove bench_name parameter, we dont use it anymore
                         const std::string &test_name,
                         const std::vector<DataPoint> &datapoints,
                         const std::string &metric_type){
-    std::string file_name = {bench_name + "_runs.json"};
+    std::string file_name = OUTFILE_NAME;
     std::ofstream file_to_write_to(file_name);
 
     json values_and_points = json::array({});
