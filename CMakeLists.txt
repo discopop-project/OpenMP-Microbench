@@ -35,9 +35,9 @@ add_executable(reduction_bench
 #        sync_bench.cc
 #        commons.cc)
 
-#add_executable(gpuoffloading_bench
-#        gpuoffloading_bench.cc
-#        commons.cc)
+add_executable(gpuoffloading_bench
+        gpuoffloading_bench.cc
+        commons.cc)
 
 #add_executable(tasktree_bench
 #        tasktree_bench.cc
