@@ -27,7 +27,7 @@ void TestCriticalSection(const DataPoint& data) {
         for (int i = 0; i < iterations; i++) {
             #pragma omp critical (crit)
             {
-                DelayFunction(i, workload);
+                DELAY(workload, i);
             }
         }
     }
@@ -45,7 +45,7 @@ void TestLock(const DataPoint& data) {
         #pragma omp parallel for shared(iterations, workload, lock) default(none) num_threads(threads)
         for (int i = 0; i < iterations; i++) {
             omp_set_lock(&lock);
-            DelayFunction(i, workload);
+            DELAY(workload, i);
             omp_unset_lock(&lock);
         }
     }
@@ -60,7 +60,7 @@ void TestAtomic(const DataPoint& data) {
         int j = 0;
         #pragma omp parallel for shared(iterations, workload, j) default(none) num_threads(threads)
         for (int i = 0; i < iterations; i++) {
-            DelayFunction(i, workload);
+            DELAY(workload, i);
             #pragma omp atomic
             j = j + i;
         }
@@ -81,7 +81,7 @@ void TestSingle(const DataPoint& data) {
             for (int i = 0; i < ceil((double) iterations / (double) threads); i++) {
                 #pragma omp single private(i)
                 {
-                    DelayFunction(i, workload);
+                    DELAY(workload, i);
                 }
             }
         }
@@ -99,7 +99,7 @@ void TestSingleNowait(const DataPoint& data) {
             for (int i = 0; i < ceil((double) iterations / (double) threads); i++) {
                 #pragma omp single nowait private(i)
                 {
-                    DelayFunction(i, workload);
+                    DELAY(workload, i);
                 }
             }
         }
@@ -117,7 +117,7 @@ void TestMaster(const DataPoint& data) {
             for (int i = 0; i < ceil((double) iterations / (double) threads); i++) {
                 #pragma omp master
                 {
-                    DelayFunction(i, workload);
+                    DELAY(workload, i);
                 }
             }
         }
@@ -133,7 +133,7 @@ void TestBarrier(const DataPoint& data) {
         #pragma omp parallel shared(iterations, workload, threads) default(none) num_threads(threads)
         {
             for (int i = 0; i < ceil((double) iterations / (double) threads); i++) {
-                DelayFunction(i, workload);
+                DELAY(workload, i);
                 #pragma omp barrier
             }
         }
@@ -149,24 +149,32 @@ void TestOrdered(const DataPoint& data) {
         #pragma omp parallel for ordered shared(iterations, workload) default(none) num_threads(threads)
         for (int i = 0; i < iterations; i++) {
             #pragma omp ordered
-            DelayFunction(i, workload);
+            DELAY(workload, i);
         }
     }
 }
 
 void Reference(const DataPoint& data) {
+    unsigned int threads = data.threads; // not used, only here for equal work in Test and Reference
+    unsigned long long int iterations = data.iterations;
+    unsigned long workload = data.workload;
+
     for (int rep = 0; rep < data.directive; rep++) {
-        for (int i = 0; i < data.iterations; i++) {
-            DelayFunction(i, data.workload);
+        for (int i = 0; i < iterations; i++) {
+            DELAY(workload, i);
         }
     }
 }
 
 void ReferenceAtomic(const DataPoint& data) {
+    unsigned int threads = data.threads; // not used, only here for equal work in Test and Reference
+    unsigned long long int iterations = data.iterations;
+    unsigned long workload = data.workload;
+
     for (int rep = 0; rep < data.directive; rep++) {
         int j = 0;
-        for (int i = 0; i < data.iterations; i++) {
-            DelayFunction(i, data.workload);
+        for (int i = 0; i < iterations; i++) {
+            DELAY(workload, i);
             j = j + i;
         }
         if (j < 0) {

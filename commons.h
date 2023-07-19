@@ -172,20 +172,49 @@ float DelayFunction(unsigned int iteration, unsigned long workload);
 /// @param a the array that should get used for computations
 void ArrayDelayFunction(unsigned int iteration, unsigned long workload, float *a);
 
-// in principle the same as DelayFunction, but less work is done for overhead=0
-#define DELAY(workload) \
+
+
+// use DELAY and ARRAY_DELAY similarly to the DelayFunction and ArrayDelayFunction
+// you can enable/disable dead code elimination prevention by defining PREVENT_DCE
+// benefit of the preprocessor makro: no function call overhead (the function might or might not be inlined by compilers, the macro is always the same)
+// possible improvement in the future: create a more specific workload
+//  - allow to specify how many reads/writes/calculations we want there to be
+//  - do not use a programmatic loop, unroll it at compile time e.g. using advanced preprocessor mechanics (maybe use boost library?)
+//  this is however difficult when considering caching and DCE
+#ifdef PREVENT_DCE
+    // VAR1 should be created by the workload generation --> prevent eliminiation of workload
+    // VAR2 should be the iteration index of the surrounding loop --> prevent moving the workload out of the loop
+    #define DCE_PREVENTION(VAR1, VAR2) \
+        if (VAR1 < 0) { \
+            printf("%f \n", VAR1 + (float) (VAR2)); \
+        }
+#else
+    #define DCE_PREVENTION(VAR1, VAR2) // defined empty
+#endif
+
+
+#define DELAY(WORKLOAD, ITERATION) \
 float DELAY_A; /*a needs to be local*/\
-for (int DELAY_I = 0; DELAY_I < workload; DELAY_I++) \
+for (int DELAY_I = 0; DELAY_I < WORKLOAD; DELAY_I++) \
 { \
     DELAY_A += (float) DELAY_I; \
-}
+} \
+DCE_PREVENTION(DELAY_A, ITERATION) 
 
 // in principle the same as ArrayDelayFunction, but less work is done for overhead=0
-#define ARRAY_DELAY(workload, array) \
-for (int DELAY_I = 0; DELAY_I < workload; DELAY_I++) \
+#define ARRAY_DELAY(WORKLOAD, ITERATION, ARRAY) \
+for (int DELAY_I = 0; DELAY_I < WORKLOAD; DELAY_I++) \
 { \
-    array[0] += (float) DELAY_I; \
-}
+    /*NOTE: this is VERY BAD caching behavior when used with multiple threads!!!*/ \
+    /*Each thread should write to a different location, e.g. ARRAY[i], but this requires that the array is large enough, also DCE_PREVENTION will be more difficult*/ \
+    ARRAY[0] += (float) DELAY_I; \
+} \
+DCE_PREVENTION(ARRAY[0], ITERATION)
+
+
+// example:
+// DELAY(a,i) expands to: float DELAY_A; for(int DELAY_I = 0; DELAY_I < a; DELAY_I++) {DELAY_A += (float) DELAY_I;}
+// if PREVENT_DCE is defined, the following code is also added: if (VAR1 < 0) { printf("%f \n", DELAY_A + (float) (i));}
 
 
 /// @brief Returns false, used for conditional in OpenMP constructs.
