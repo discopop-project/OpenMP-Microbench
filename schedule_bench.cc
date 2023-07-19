@@ -65,7 +65,7 @@ void TestSchedStaticNonmon(const DataPoint& data) {
         for (int rep = 0; rep < directive; rep++) {
             #pragma omp for schedule(nonmonotonic : static, chunk_size)
             for (int i = 0; i < iterations; i++) {
-                DelayFunction(i, workload);
+                DELAY(workload, i);
             }
         }
     }
@@ -83,7 +83,7 @@ void TestSchedStaticMon(const DataPoint& data) {
         for (int rep = 0; rep < directive; rep++) {
             #pragma omp for schedule(monotonic : static, chunk_size)
             for (int i = 0; i < iterations; i++) {
-                DelayFunction(i, workload);
+                DELAY(workload, i);
             }
         }
     }
@@ -101,7 +101,7 @@ void TestSchedDynamicNonmon(const DataPoint& data) {
         for (int rep = 0; rep < directive; rep++) {
             #pragma omp for schedule(nonmonotonic : dynamic, chunk_size)
             for (int i = 0; i < iterations; i++) {
-                DelayFunction(i, workload);
+                DELAY(workload, i);
             }
         }
     }
@@ -118,7 +118,7 @@ void TestSchedDynamicMon(const DataPoint& data) {
         for (int rep = 0; rep < directive; rep++) {
             #pragma omp for schedule(monotonic : dynamic, chunk_size)
             for (int i = 0; i < iterations; i++) {
-                DelayFunction(i, workload);
+                DELAY(workload, i);
             }
         }
     }
@@ -135,7 +135,7 @@ void TestSchedGuidedNonmon(const DataPoint& data) {
         for (int rep = 0; rep < directive; rep++) {
             #pragma omp for schedule(nonmonotonic : guided, chunk_size)
             for (int i = 0; i < iterations; i++) {
-                DelayFunction(i, workload);
+                DELAY(workload, i);
             }
         }
     }
@@ -152,7 +152,7 @@ void TestSchedGuidedMon(const DataPoint& data) {
         for (int rep = 0; rep < directive; rep++) {
             #pragma omp for schedule(monotonic : guided, chunk_size)
             for (int i = 0; i < iterations; i++) {
-                DelayFunction(i, workload);
+                DELAY(workload, i);
             }
         }
 
@@ -170,7 +170,7 @@ void TestSchedAuto(const DataPoint& data) {
         for (int rep = 0; rep < directive; rep++) {
             #pragma omp for schedule(auto)
             for (int i = 0; i < iterations; i++) {
-                DelayFunction(i, workload);
+                DELAY(workload, i);
             }
         }
     }
@@ -192,16 +192,21 @@ void TestSchedRuntime(const DataPoint& data) {
         for (int rep = 0; rep < directive; rep++) {
             #pragma omp for schedule(runtime)
             for (int i = 0; i < iterations; i++) {
-                DelayFunction(i, workload);
+                DELAY(workload, i);
             }
         }
     }
 }
 
 void Reference(const DataPoint& data) {
-    for (int rep = 0; rep < data.directive; rep++) {
-        for (int i = 0; i < data.iterations; i++) {
-            DelayFunction(i, data.workload);
+    unsigned int threads = data.threads; // not used, only here for equal work in Test and Reference
+    unsigned int directive = data.directive;
+    unsigned long long int iterations = data.iterations;
+    unsigned long workload = data.workload;
+
+    for (int rep = 0; rep < directive; rep++) {
+        for (int i = 0; i < iterations; i++) {
+            DELAY(workload, i);
         }
     }
 }

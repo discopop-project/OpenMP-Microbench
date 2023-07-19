@@ -39,7 +39,7 @@ void StartTreeGenLeaves(const DataPoint& data) {
 void TreeGenLeaves(unsigned int num_children, unsigned long long int tasks_to_create, unsigned long long int workload) {
 
     if (tasks_to_create == 1) {
-        DelayFunction(0, workload);
+        DELAY(workload, 0);
     }
     else {
         if (tasks_to_create <= num_children) {
@@ -77,7 +77,7 @@ void Reference(const DataPoint& data) {
         {
             #pragma omp taskloop shared(tasks, workload) default(none)
             for (int i = 0; i < tasks; i++) {
-               DelayFunction(i, workload);
+                DELAY(workload, i);
             }
         }
     }

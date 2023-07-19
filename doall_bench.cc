@@ -56,7 +56,7 @@ void TestDoallFirstprivate(const DataPoint& data) {
     for (int rep = 0; rep < data.directive; rep++) {
         #pragma omp parallel for num_threads(threads) default(none) shared(iterations, workload) firstprivate(array)
         for (int i = 0; i < iterations; i++) {
-            ARRAY_DELAY(workload, array);
+            ARRAY_DELAY(workload, i, array);
         }
     }
 }
@@ -69,7 +69,7 @@ void TestDoallPrivate(const DataPoint& data) {
     for (int rep = 0; rep < data.directive; rep++) {
         #pragma omp parallel for num_threads(threads) default(none) shared(iterations, workload) private(array)
         for (int i = 0; i < iterations; i++) {
-            ARRAY_DELAY(workload, array);
+            ARRAY_DELAY(workload, i, array);
         }
     }
 }
@@ -84,7 +84,7 @@ void TestDoallSeparated(const DataPoint& data) {
     for (int rep = 0; rep < directive; rep++) {
         #pragma omp for
         for (int i = 0; i < iterations; i++) {
-            ARRAY_DELAY(workload, array);
+            ARRAY_DELAY(workload, i, array);
         }
     }
 }
@@ -97,7 +97,7 @@ void TestDoAllShared(const DataPoint& data) {
     for (int rep = 0; rep < data.directive; rep++) {
         #pragma omp parallel for num_threads(threads) default(none) shared(iterations, workload, array)
         for (int i = 0; i < iterations; i++) {
-            ARRAY_DELAY(workload, array);
+            ARRAY_DELAY(workload, i, array);
         }
     }
 }
@@ -110,7 +110,7 @@ void TestDoAll(const DataPoint& data) {
     for (int rep = 0; rep < data.directive; rep++) {
         #pragma omp parallel for num_threads(threads) default(none) shared(iterations, workload, array)
         for (int i = 0; i < iterations; i++) {
-            DELAY(workload);
+            DELAY(workload, i);
         }
     }
 }
@@ -123,7 +123,7 @@ void TestCopyin(const DataPoint& data) {
     for (int rep = 0; rep < data.directive; rep++) {
         #pragma omp parallel for num_threads(threads) default(none) copyin(array_thread_private) shared(iterations, workload)
         for (int i = 0; i < iterations; i++) {
-            ARRAY_DELAY(workload, array_thread_private);
+            ARRAY_DELAY(workload, i, array_thread_private);
         }
     }
 }
@@ -139,7 +139,7 @@ void TestCopyPrivate(const DataPoint& data) {
             #pragma omp single copyprivate(array)
             {
                 for (int i = 0; i < iterations; i++) {
-                    ARRAY_DELAY(workload, array);
+                    ARRAY_DELAY(workload, i, array);
                 }
             }
         }
@@ -153,7 +153,7 @@ void ReferenceWithArray(const DataPoint& data) {
 
     for (int rep = 0; rep < data.directive; rep++) {
         for (int i = 0; i < iterations; i++) {
-            ARRAY_DELAY(workload, array);
+            ARRAY_DELAY(workload, i, array);
         }
     }
 }
@@ -166,7 +166,7 @@ void ReferenceWithoutArray(const DataPoint& data) {
 
     for (int rep = 0; rep < data.directive; rep++) {
         for (int i = 0; i < iterations; i++) {
-            DELAY(workload);
+            DELAY(workload, i);
         }
     }
 }

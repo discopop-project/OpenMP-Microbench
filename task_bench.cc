@@ -50,7 +50,7 @@ void TestTaskLoopMaster(const DataPoint& data) {
             for (int rep = 0; rep < directive; rep++) {
                 #pragma omp taskloop shared(iterations, workload, threads) default(none)
                 for (int i = 0; i < iterations; i++) {
-                    DelayFunction(i, workload);
+                    DELAY(workload, i);
                 }
             }
         }
@@ -71,7 +71,7 @@ void TestTaskMaster(const DataPoint& data) {
                 for (int i = 0; i < iterations; i++) {
                     #pragma omp task shared(i, workload) default(none)
                     {
-                        DelayFunction(i, workload);
+                        DELAY(workload, i);
                     }
                 }
             }
@@ -92,7 +92,7 @@ void TestTaskBarrier(const DataPoint& data) {
             for (int i = 0; i < ceil(iterations/threads); i++) {
                 #pragma omp task shared(i, workload) default(none)
                 {
-                    DelayFunction(i, workload);
+                    DELAY(workload, i);
                 }
                 #pragma omp barrier
             }
@@ -111,7 +111,7 @@ void TestTaskThreads(const DataPoint& data) {
             for (int i = 0; i < ceil(iterations/threads); i++) {
                 #pragma omp task shared(i, workload) default(none)
                 {
-                    DelayFunction(i, workload);
+                    DELAY(workload, i);
                 }
             }
         }
@@ -128,7 +128,7 @@ void TestTaskForLoop(const DataPoint& data) {
         for (int i = 0; i < iterations; i++) {
             #pragma omp task shared(i, workload) default(none)
             {
-                DelayFunction(i, workload);
+                DELAY(workload, i);
             }
         }
     }
@@ -146,7 +146,7 @@ void TestTaskWait(const DataPoint& data) {
             for (int i = 0; i < ceil(iterations/threads); i++) {
                 #pragma omp task shared(i, workload) default(none)
                 {
-                    DelayFunction(i, workload);
+                    DELAY(workload, i);
                 }
                 #pragma omp taskwait
             }
@@ -166,7 +166,7 @@ void TestTaskConditionalTrue(const DataPoint& data) {
             for (int i = 0; i < ceil(iterations/threads); i++) {
                 #pragma omp task shared(i, workload) if(ReturnTrue()) default(none)
                 {
-                    DelayFunction(i, workload);
+                    DELAY(workload, i);
                 }
             }
         }
@@ -184,7 +184,7 @@ void TestTaskConditionalFalse(const DataPoint& data) {
             for (int i = 0; i < ceil(iterations/threads); i++) {
                 #pragma omp task shared(i, workload) if(ReturnFalse()) default(none)
                 {
-                    DelayFunction(i, workload);
+                    DELAY(workload, i);
                 }
             }
         }
@@ -192,9 +192,13 @@ void TestTaskConditionalFalse(const DataPoint& data) {
 }
 
 void Reference(const DataPoint& data) {
+    unsigned int threads = data.threads; // // not used, only here for equal amount of work in Test and Reference
+    unsigned long long int iterations = data.iterations;
+    unsigned long workload = data.workload;
+
     for (int rep = 0; rep < data.directive; rep++) {
-        for (int i = 0; i < data.iterations; i++) {
-            DelayFunction(i, data.workload);
+        for (int i = 0; i < iterations; i++) {
+            DELAY(workload, i);
         }
     }
 }
