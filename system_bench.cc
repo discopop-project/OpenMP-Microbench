@@ -104,7 +104,7 @@ void get_host_information(int device_id, json &system_information){
     printf("# - processors: %d\n", num_processors);
     printf("# - threads: %d\n", max_threads);
     printf("# - frequency (hardcoded): %ld Hz\n", frequency);
-    printf("# - doall init costs: %f s\n", doall_init_costs_s);
+    printf("# - doall init delay: %f s\n", doall_init_costs_s);
     printf("# - sequential execution time: %f\n", seq_execution_time_s);
     printf("# - doall execution time: %f\n", doall_execution_time_s);
     printf("#   - speedup: %f\n", doall_speedup);
@@ -115,9 +115,9 @@ void get_host_information(int device_id, json &system_information){
     host_device["processors"] = num_processors;
     host_device["threads"] = max_threads;
     host_device["frequency"] = frequency;
-    json compute_init_costs;
-    compute_init_costs["doall"] = doall_init_costs_s;
-    host_device["compute_init_costs"] = compute_init_costs;
+    json compute_init_delays;
+    compute_init_delays["doall"] = doall_init_costs_s;
+    host_device["compute_init_delays"] = compute_init_delays;
     system_information["devices"] += host_device;
 }
 
@@ -161,13 +161,13 @@ void get_device_information(int device_id, json &system_information){
     printf("# - processors: %d\n", num_processors);
     printf("# - teams: %d\n", max_teams);
     printf("# - frequency (hardcoded): %ld Hz\n", frequency);
-    printf("# - target teams distribute parallel for init costs: %ld.%06ld s\n", target_tdpf_init_costs.tv_sec, target_tdpf_init_costs.tv_usec);
-    printf("# - target enter data init costs: %ld.%06ld s\n", target_enter_data_init_costs.tv_sec, target_enter_data_init_costs.tv_usec);
-    printf("# - target exit data init costs:  %ld.%06ld s\n", target_exit_data_init_costs.tv_sec, target_exit_data_init_costs.tv_usec);
-    printf("# - target data update init costs: %ld.%06ld s\n", target_data_update_init_costs.tv_sec, target_data_update_init_costs.tv_usec);
-    printf("# - Copy H2D 1GB costs: %ld.%06ld s\n", H2D_1GB_costs.tv_sec, H2D_1GB_costs.tv_usec);
+    printf("# - target teams distribute parallel for init delay: %ld.%06ld s\n", target_tdpf_init_costs.tv_sec, target_tdpf_init_costs.tv_usec);
+    printf("# - target enter data init delay: %ld.%06ld s\n", target_enter_data_init_costs.tv_sec, target_enter_data_init_costs.tv_usec);
+    printf("# - target exit data init delay:  %ld.%06ld s\n", target_exit_data_init_costs.tv_sec, target_exit_data_init_costs.tv_usec);
+    printf("# - target data update init delay: %ld.%06ld s\n", target_data_update_init_costs.tv_sec, target_data_update_init_costs.tv_usec);
+    printf("# - Copy H2D 1GB time: %ld.%06ld s\n", H2D_1GB_costs.tv_sec, H2D_1GB_costs.tv_usec);
     printf("#   - H2D: %f GB/s\n", H2D_GBps);
-    printf("# - Copy D2H 1GB costs: %ld.%06ld s\n", D2H_1GB_costs.tv_sec, D2H_1GB_costs.tv_usec);
+    printf("# - Copy D2H 1GB time: %ld.%06ld s\n", D2H_1GB_costs.tv_sec, D2H_1GB_costs.tv_usec);
     printf("#   - D2H: %f GB/s\n", D2H_GBps);
     printf("# - execution time: %f\n", device_execution_time_s);
     printf("\n");
@@ -179,14 +179,14 @@ void get_device_information(int device_id, json &system_information){
     device["threads"] = max_teams;
     device["teams"] = max_teams;
     device["frequency"] = frequency;
-    json compute_init_costs;
-    compute_init_costs["target_teams_distribute_parallel_for"] = target_tdpf_init_costs_s;
-    device["compute_init_costs"] = compute_init_costs;
-    json transfer_init_costs;
-    transfer_init_costs["target_enter_data"] = target_enter_data_init_costs_s;
-    transfer_init_costs["target_exit_data"] = target_exit_data_init_costs_s;
-    transfer_init_costs["target_data_update"] = target_data_update_init_costs_s;
-    device["transfer_init_costs"] = transfer_init_costs;
+    json compute_init_delays;
+    compute_init_delays["target_teams_distribute_parallel_for"] = target_tdpf_init_costs_s;
+    device["compute_init_delays"] = compute_init_delays;
+    json transfer_init_delays;
+    transfer_init_delays["target_enter_data"] = target_enter_data_init_costs_s;
+    transfer_init_delays["target_exit_data"] = target_exit_data_init_costs_s;
+    transfer_init_delays["target_data_update"] = target_data_update_init_costs_s;
+    device["transfer_init_delays"] = transfer_init_delays;
     json transfer_speeds;
     transfer_speeds["H2D"] = H2D_GBps;
     transfer_speeds["D2H"] = D2H_GBps;
