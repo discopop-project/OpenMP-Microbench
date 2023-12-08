@@ -6,6 +6,7 @@
 void test_system();
 void test_gpu_execution(int device_id);
 void get_system_information();
-void get_device_information();
+void get_device_information(int device_id);
+void get_host_information(int device_id);
 
 #endif //PPT_P4_SYSTEM_H

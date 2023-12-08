@@ -51,11 +51,51 @@ void get_system_information(){
     printf("# - devices: %d\n", omp_get_num_devices());
     printf("# - host_device: %d\n", omp_get_initial_device());
     printf("\n");
+
+    get_host_information(omp_get_initial_device());
+
+    for(int device_id = 0; device_id < omp_get_num_devices(); device_id++){
+        get_device_information(device_id);
+    }
 }
 
-void get_device_information(int device_num){
-    printf("# DEVICE: %d\n", device_num);
-    printf("# - device_num: %d\n", omp_get_initial_device());
-    printf("# - processors: %d\n", omp_get_num_procs());
+void get_host_information(int device_id){
+    int num_processors = -1;
+    int max_threads = -1;
+    // gather stats
+    #pragma omp parallel
+    #pragma omp single
+    {
+        num_processors = omp_get_num_procs();
+        max_threads = omp_get_max_threads();
+    }
+    // print stats
+    printf("# HOST: %d\n", device_id);
+    printf("# - processors: %d\n", num_processors);
+    printf("# - threads: %d\n", max_threads);
+
+    printf("\n");
+}
+
+void get_device_information(int device_id){
+    int num_processors = -1;
+    int max_threads = -1;
+    int max_teams = -1;
+    // gather stats
+    #pragma omp target device(device_id) map(tofrom: num_processors, max_teams)
+    {
+        num_processors = omp_get_num_procs();
+        
+    }
+    // get number ov available teams
+    #pragma omp target teams device(device_id) map(tofrom: max_teams)
+    {
+        max_teams = omp_get_num_teams();
+    }
+
+    // print stats
+    printf("# DEVICE: %d\n", device_id);
+    printf("# - processors: %d\n", num_processors);
+    printf("# - teams: %d\n", max_teams);
     printf("\n");
 }
