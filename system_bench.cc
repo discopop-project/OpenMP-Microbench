@@ -75,11 +75,21 @@ void get_host_information(int device_id){
         num_processors = omp_get_num_procs();
         max_threads = omp_get_max_threads();
     }
+    // get benchmark execution time
+    timeval seq_execution_time = get_sequential_computation_time();
+    double seq_execution_time_s = (1*seq_execution_time.tv_sec + 0.000001*seq_execution_time.tv_usec);
+    timeval doall_execution_time = get_doall_computation_time();
+    double doall_execution_time_s = (1*doall_execution_time.tv_sec + 0.000001*doall_execution_time.tv_usec);
+    double doall_speedup = seq_execution_time_s / doall_execution_time_s;
+    timeval doall_init_costs = get_doall_init_costs();
     // print stats
     printf("# HOST: %d\n", device_id);
     printf("# - processors: %d\n", num_processors);
     printf("# - threads: %d\n", max_threads);
-
+    printf("# - doall init costs: %ld.%06ld s\n", doall_init_costs.tv_sec, doall_init_costs.tv_usec);
+    printf("# - sequential execution time: %f\n", seq_execution_time_s);
+    printf("# - doall execution time: %f\n", doall_execution_time_s);
+    printf("#   - speedup: %f\n", doall_speedup);
     printf("\n");
 }
 
@@ -98,6 +108,8 @@ void get_device_information(int device_id){
     {
         max_teams = omp_get_num_teams();
     }
+    // get computation initialization costs
+    timeval target_tdpf_init_costs = get_target_teams_distribute_parallel_for_init_costs(device_id);
     // get transfer initialization costs
     timeval target_enter_data_costs = get_target_enter_data_costs(device_id);
     timeval target_exit_data_costs = get_target_exit_data_costs(device_id);
@@ -107,12 +119,15 @@ void get_device_information(int device_id){
     double H2D_GB_s = 1 / (1*((int)H2D_1GB_costs.tv_sec)+ 0.000001*(long(H2D_1GB_costs.tv_usec)));
     timeval D2H_1GB_costs = get_D2H_costs_1GB(device_id);
     double D2H_GB_s = 1 / (1*D2H_1GB_costs.tv_sec + 0.000001*D2H_1GB_costs.tv_usec);
-    
+    // get benchmark execution time
+    timeval device_execution_time = get_device_computation_time(device_id);
+    double device_execution_time_s = (1*device_execution_time.tv_sec + 0.000001*device_execution_time.tv_usec);
 
     // print stats
     printf("# DEVICE: %d\n", device_id);
     printf("# - processors: %d\n", num_processors);
     printf("# - teams: %d\n", max_teams);
+    printf("# - target teams distribute parallel for init costs: %ld.%06ld s\n", target_tdpf_init_costs.tv_sec, target_tdpf_init_costs.tv_usec);
     printf("# - target enter data costs: %ld.%06ld s\n", target_enter_data_costs.tv_sec, target_enter_data_costs.tv_usec);
     printf("# - target exit data costs:  %ld.%06ld s\n", target_exit_data_costs.tv_sec, target_exit_data_costs.tv_usec);
     printf("# - target data update costs: %ld.%06ld s\n", target_data_update_costs.tv_sec, target_data_update_costs.tv_usec);
@@ -120,7 +135,44 @@ void get_device_information(int device_id){
     printf("#   - H2D: %f GB/s\n", H2D_GB_s);
     printf("# - Copy D2H 1GB costs: %ld.%06ld s\n", D2H_1GB_costs.tv_sec, D2H_1GB_costs.tv_usec);
     printf("#   - D2H: %f GB/s\n", D2H_GB_s);
+    printf("# - execution time: %f\n", device_execution_time_s);
     printf("\n");
+}
+
+timeval get_doall_init_costs(){
+    // setup
+    int iterations = 1000000;
+    int workload = 1;
+    timeval before{}, after{};
+    // measurement
+    gettimeofday(&before, nullptr);
+    #pragma omp parallel for
+    for (int i = 0; i < iterations; i++) {
+            DELAY(workload, i);
+    }
+    gettimeofday(&after, nullptr);
+    // cleanup
+    timeval result{};
+    TimevalSubtract(before, after, result);
+    return result;
+}
+
+timeval get_target_teams_distribute_parallel_for_init_costs(int device_id){
+    // setup
+    int iterations = 1000000;
+    int workload = 1;
+    timeval before{}, after{};
+    // measurement
+    gettimeofday(&before, nullptr);
+    #pragma omp target teams distribute parallel for device(device_id)
+    for (int i = 0; i < iterations; i++) {
+            DELAY(workload, i);
+    }
+    gettimeofday(&after, nullptr);
+    // cleanup
+    timeval result{};
+    TimevalSubtract(before, after, result);
+    return result;
 }
 
 timeval get_target_enter_data_costs(int device_id){
@@ -205,3 +257,57 @@ timeval get_D2H_costs_1GB(int device_id){
     TimevalSubtract(before, after, result);
     return result;
 }
+
+timeval get_sequential_computation_time(){
+    // setup
+    int iterations = 1000000;
+    int workload = 1000;
+    timeval before{}, after{};
+    // measurement
+    gettimeofday(&before, nullptr);
+    for (int i = 0; i < iterations; i++) {
+            DELAY(workload, i);
+    }
+    gettimeofday(&after, nullptr);
+    // cleanup
+    timeval result{};
+    TimevalSubtract(before, after, result);
+    return result;
+}
+
+timeval get_doall_computation_time(){
+    // setup
+    int iterations = 1000000;
+    int workload = 1000;
+    timeval before{}, after{};
+    // measurement
+    gettimeofday(&before, nullptr);
+    #pragma omp parallel for
+    for (int i = 0; i < iterations; i++) {
+            DELAY(workload, i);
+    }
+    gettimeofday(&after, nullptr);
+    // cleanup
+    timeval result{};
+    TimevalSubtract(before, after, result);
+    return result;
+}
+
+timeval get_device_computation_time(int device_id){
+    // setup
+    int iterations = 1000000;
+    int workload = 1000;
+    timeval before{}, after{};
+    // measurement
+    gettimeofday(&before, nullptr);
+    #pragma omp target teams distribute parallel for device(device_id)
+    for (int i = 0; i < iterations; i++) {
+            DELAY(workload, i);
+    }
+    gettimeofday(&after, nullptr);
+    // cleanup
+    timeval result{};
+    TimevalSubtract(before, after, result);
+    return result;
+}
+
