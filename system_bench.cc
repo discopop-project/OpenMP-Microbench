@@ -2,6 +2,7 @@
 #include "commons.h"
 #include <omp.h>
 #include <iostream>
+#include <unistd.h>
 
 std::string bench_name = "SYSTEM";
 
@@ -14,8 +15,12 @@ int main(int argc, char **argv){
         RemoveBench(bench_name);
     }
 
-    get_system_information();
     test_system();
+
+    printf("\n#################\n\n");
+
+    get_system_information();
+    
 
     return 0;
 }
@@ -97,14 +102,24 @@ void get_device_information(int device_id){
     timeval target_enter_data_costs = get_target_enter_data_costs(device_id);
     timeval target_exit_data_costs = get_target_exit_data_costs(device_id);
     timeval target_data_update_costs = get_target_data_update_costs(device_id);
+    //get transfer times
+    timeval H2D_1GB_costs = get_H2D_costs_1GB(device_id);
+    double H2D_GB_s = 1 / (1*((int)H2D_1GB_costs.tv_sec)+ 0.000001*(long(H2D_1GB_costs.tv_usec)));
+    timeval D2H_1GB_costs = get_D2H_costs_1GB(device_id);
+    double D2H_GB_s = 1 / (1*D2H_1GB_costs.tv_sec + 0.000001*D2H_1GB_costs.tv_usec);
+    
 
     // print stats
     printf("# DEVICE: %d\n", device_id);
     printf("# - processors: %d\n", num_processors);
     printf("# - teams: %d\n", max_teams);
-    printf("# - target enter data costs: %ld.%06lds\n", target_enter_data_costs.tv_sec, target_enter_data_costs.tv_usec);
-    printf("# - target exit data costs:  %ld.%06lds\n", target_exit_data_costs.tv_sec, target_exit_data_costs.tv_usec);
-    printf("# - target data update costs: %ld.%06lds\n", target_data_update_costs.tv_sec, target_data_update_costs.tv_usec);
+    printf("# - target enter data costs: %ld.%06ld s\n", target_enter_data_costs.tv_sec, target_enter_data_costs.tv_usec);
+    printf("# - target exit data costs:  %ld.%06ld s\n", target_exit_data_costs.tv_sec, target_exit_data_costs.tv_usec);
+    printf("# - target data update costs: %ld.%06ld s\n", target_data_update_costs.tv_sec, target_data_update_costs.tv_usec);
+    printf("# - Copy H2D 1GB costs: %ld.%06ld s\n", H2D_1GB_costs.tv_sec, H2D_1GB_costs.tv_usec);
+    printf("#   - H2D: %f GB/s\n", H2D_GB_s);
+    printf("# - Copy D2H 1GB costs: %ld.%06ld s\n", D2H_1GB_costs.tv_sec, D2H_1GB_costs.tv_usec);
+    printf("#   - D2H: %f GB/s\n", D2H_GB_s);
     printf("\n");
 }
 
@@ -155,3 +170,38 @@ timeval get_target_data_update_costs(int device_id){
     return result;
 }
 
+timeval get_H2D_costs_1GB(int device_id){
+    // setup
+    bool minimal_transfer_package = false;
+    int32_t* array = new int32_t[250000000];  // size = 1GB
+    
+    #pragma omp target enter data map(to:minimal_transfer_package) map(alloc:array[0:250000000]) device(device_id)
+    timeval before{}, after{};
+    // measurement
+    gettimeofday(&before, nullptr);
+    #pragma omp target update to(array[0:250000000]) device(device_id)
+    gettimeofday(&after, nullptr);
+    // cleanup
+    #pragma omp target exit data map(delete: minimal_transfer_package, array[0:250000000]) device(device_id)
+    timeval result{};
+    TimevalSubtract(before, after, result);
+    return result;
+}
+
+timeval get_D2H_costs_1GB(int device_id){
+    // setup
+    bool minimal_transfer_package = false;
+    int32_t* array = new int32_t[250000000];  // size = 1GB
+    #pragma omp target enter data map(to:minimal_transfer_package) map(alloc:array[0:250000000]) device(device_id)
+    #pragma omp target update to(array[0:250000000]) device(device_id)
+    timeval before{}, after{};
+    // measurement
+    gettimeofday(&before, nullptr);
+    #pragma omp target update from(array[0:250000000]) device(device_id)
+    gettimeofday(&after, nullptr);
+    // cleanup
+    #pragma omp target exit data map(delete: minimal_transfer_package, array[0:250000000]) device(device_id)
+    timeval result{};
+    TimevalSubtract(before, after, result);
+    return result;
+}

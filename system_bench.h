@@ -13,4 +13,7 @@ timeval get_target_enter_data_costs(int device_id);
 timeval get_target_exit_data_costs(int device_id);
 timeval get_target_data_update_costs(int device_id);
 
+timeval get_H2D_costs_1GB(int device_id);
+timeval get_D2H_costs_1GB(int device_id);
+
 #endif //PPT_P4_SYSTEM_H
