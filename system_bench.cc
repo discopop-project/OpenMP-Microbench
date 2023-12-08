@@ -1,6 +1,7 @@
 #include "system_bench.h"
 #include "commons.h"
 #include <omp.h>
+#include <iostream>
 
 std::string bench_name = "SYSTEM";
 
@@ -92,10 +93,65 @@ void get_device_information(int device_id){
     {
         max_teams = omp_get_num_teams();
     }
+    // get transfer initialization costs
+    timeval target_enter_data_costs = get_target_enter_data_costs(device_id);
+    timeval target_exit_data_costs = get_target_exit_data_costs(device_id);
+    timeval target_data_update_costs = get_target_data_update_costs(device_id);
 
     // print stats
     printf("# DEVICE: %d\n", device_id);
     printf("# - processors: %d\n", num_processors);
     printf("# - teams: %d\n", max_teams);
+    printf("# - target enter data costs: %ld.%06lds\n", target_enter_data_costs.tv_sec, target_enter_data_costs.tv_usec);
+    printf("# - target exit data costs:  %ld.%06lds\n", target_exit_data_costs.tv_sec, target_exit_data_costs.tv_usec);
+    printf("# - target data update costs: %ld.%06lds\n", target_data_update_costs.tv_sec, target_data_update_costs.tv_usec);
     printf("\n");
 }
+
+timeval get_target_enter_data_costs(int device_id){
+    // setup
+    bool minimal_transfer_package = false;
+    timeval before{}, after{};
+    // measurement
+    gettimeofday(&before, nullptr);
+    #pragma omp target enter data map(to: minimal_transfer_package) device(device_id)
+    gettimeofday(&after, nullptr);
+    // cleanup
+    #pragma omp target exit data map(delete: minimal_transfer_package) device(device_id)
+    timeval result{};
+    TimevalSubtract(before, after, result);
+    return result;
+}
+
+timeval get_target_exit_data_costs(int device_id){
+    // setup
+    bool minimal_transfer_package = false;
+    #pragma omp target enter data map(to: minimal_transfer_package) device(device_id)
+    timeval before{}, after{};
+    // measurement
+    gettimeofday(&before, nullptr);
+    #pragma omp target exit data map(delete: minimal_transfer_package) device(device_id)
+    gettimeofday(&after, nullptr);
+    // cleanup
+    timeval result{};
+    TimevalSubtract(before, after, result);
+    return result;
+}
+
+timeval get_target_data_update_costs(int device_id){
+    // setup
+    bool minimal_transfer_package = false;
+    #pragma omp target enter data map(to:minimal_transfer_package) device(device_id)
+    minimal_transfer_package = true;
+    timeval before{}, after{};
+    // measurement
+    gettimeofday(&before, nullptr);
+    #pragma omp target update to(minimal_transfer_package) device(device_id)
+    gettimeofday(&after, nullptr);
+    // cleanup
+    #pragma omp target exit data map(delete: minimal_transfer_package) device(device_id)
+    timeval result{};
+    TimevalSubtract(before, after, result);
+    return result;
+}
+
