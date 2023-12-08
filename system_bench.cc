@@ -68,6 +68,7 @@ void get_system_information(){
 void get_host_information(int device_id){
     int num_processors = -1;
     int max_threads = -1;
+    long frequency = 3000000000;
     // gather stats
     #pragma omp parallel
     #pragma omp single
@@ -86,6 +87,7 @@ void get_host_information(int device_id){
     printf("# HOST: %d\n", device_id);
     printf("# - processors: %d\n", num_processors);
     printf("# - threads: %d\n", max_threads);
+    printf("# - frequency (hardcoded): %ld Hz\n", frequency);
     printf("# - doall init costs: %ld.%06ld s\n", doall_init_costs.tv_sec, doall_init_costs.tv_usec);
     printf("# - sequential execution time: %f\n", seq_execution_time_s);
     printf("# - doall execution time: %f\n", doall_execution_time_s);
@@ -97,6 +99,7 @@ void get_device_information(int device_id){
     int num_processors = -1;
     int max_threads = -1;
     int max_teams = -1;
+    long frequency = 512000000;
     // gather stats
     #pragma omp target device(device_id) map(tofrom: num_processors, max_teams)
     {
@@ -127,6 +130,7 @@ void get_device_information(int device_id){
     printf("# DEVICE: %d\n", device_id);
     printf("# - processors: %d\n", num_processors);
     printf("# - teams: %d\n", max_teams);
+    printf("# - frequency (hardcoded): %ld Hz\n", frequency);
     printf("# - target teams distribute parallel for init costs: %ld.%06ld s\n", target_tdpf_init_costs.tv_sec, target_tdpf_init_costs.tv_usec);
     printf("# - target enter data costs: %ld.%06ld s\n", target_enter_data_costs.tv_sec, target_enter_data_costs.tv_usec);
     printf("# - target exit data costs:  %ld.%06ld s\n", target_exit_data_costs.tv_sec, target_exit_data_costs.tv_usec);
