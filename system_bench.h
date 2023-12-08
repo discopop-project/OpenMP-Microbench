@@ -12,9 +12,9 @@ void get_host_information(int device_id);
 timeval get_doall_init_costs();
 timeval get_target_teams_distribute_parallel_for_init_costs(int device_id);
 
-timeval get_target_enter_data_costs(int device_id);
-timeval get_target_exit_data_costs(int device_id);
-timeval get_target_data_update_costs(int device_id);
+timeval get_target_enter_data_init_costs(int device_id);
+timeval get_target_exit_data_init_costs(int device_id);
+timeval get_target_data_update_init_costs(int device_id);
 
 timeval get_H2D_costs_1GB(int device_id);
 timeval get_D2H_costs_1GB(int device_id);

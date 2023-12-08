@@ -114,9 +114,9 @@ void get_device_information(int device_id){
     // get computation initialization costs
     timeval target_tdpf_init_costs = get_target_teams_distribute_parallel_for_init_costs(device_id);
     // get transfer initialization costs
-    timeval target_enter_data_costs = get_target_enter_data_costs(device_id);
-    timeval target_exit_data_costs = get_target_exit_data_costs(device_id);
-    timeval target_data_update_costs = get_target_data_update_costs(device_id);
+    timeval target_enter_data_init_costs = get_target_enter_data_init_costs(device_id);
+    timeval target_exit_data_init_costs = get_target_exit_data_init_costs(device_id);
+    timeval target_data_update_init_costs = get_target_data_update_init_costs(device_id);
     //get transfer times
     timeval H2D_1GB_costs = get_H2D_costs_1GB(device_id);
     double H2D_GB_s = 1 / (1*((int)H2D_1GB_costs.tv_sec)+ 0.000001*(long(H2D_1GB_costs.tv_usec)));
@@ -132,9 +132,9 @@ void get_device_information(int device_id){
     printf("# - teams: %d\n", max_teams);
     printf("# - frequency (hardcoded): %ld Hz\n", frequency);
     printf("# - target teams distribute parallel for init costs: %ld.%06ld s\n", target_tdpf_init_costs.tv_sec, target_tdpf_init_costs.tv_usec);
-    printf("# - target enter data costs: %ld.%06ld s\n", target_enter_data_costs.tv_sec, target_enter_data_costs.tv_usec);
-    printf("# - target exit data costs:  %ld.%06ld s\n", target_exit_data_costs.tv_sec, target_exit_data_costs.tv_usec);
-    printf("# - target data update costs: %ld.%06ld s\n", target_data_update_costs.tv_sec, target_data_update_costs.tv_usec);
+    printf("# - target enter data init costs: %ld.%06ld s\n", target_enter_data_init_costs.tv_sec, target_enter_data_init_costs.tv_usec);
+    printf("# - target exit data init costs:  %ld.%06ld s\n", target_exit_data_init_costs.tv_sec, target_exit_data_init_costs.tv_usec);
+    printf("# - target data update init costs: %ld.%06ld s\n", target_data_update_init_costs.tv_sec, target_data_update_init_costs.tv_usec);
     printf("# - Copy H2D 1GB costs: %ld.%06ld s\n", H2D_1GB_costs.tv_sec, H2D_1GB_costs.tv_usec);
     printf("#   - H2D: %f GB/s\n", H2D_GB_s);
     printf("# - Copy D2H 1GB costs: %ld.%06ld s\n", D2H_1GB_costs.tv_sec, D2H_1GB_costs.tv_usec);
@@ -179,7 +179,7 @@ timeval get_target_teams_distribute_parallel_for_init_costs(int device_id){
     return result;
 }
 
-timeval get_target_enter_data_costs(int device_id){
+timeval get_target_enter_data_init_costs(int device_id){
     // setup
     bool minimal_transfer_package = false;
     timeval before{}, after{};
@@ -194,7 +194,7 @@ timeval get_target_enter_data_costs(int device_id){
     return result;
 }
 
-timeval get_target_exit_data_costs(int device_id){
+timeval get_target_exit_data_init_costs(int device_id){
     // setup
     bool minimal_transfer_package = false;
     #pragma omp target enter data map(to: minimal_transfer_package) device(device_id)
@@ -209,7 +209,7 @@ timeval get_target_exit_data_costs(int device_id){
     return result;
 }
 
-timeval get_target_data_update_costs(int device_id){
+timeval get_target_data_update_init_costs(int device_id){
     // setup
     bool minimal_transfer_package = false;
     #pragma omp target enter data map(to:minimal_transfer_package) device(device_id)
