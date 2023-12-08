@@ -43,6 +43,10 @@ add_executable(gpuoffloading_bench
 #        tasktree_bench.cc
 #        commons.cc)
 
+add_executable(system_bench
+        system_bench.cc
+        commons.cc)
+
 if(OPENMP_FOUND)
     target_link_libraries(reduction_bench PUBLIC OpenMP::OpenMP_CXX)
 #    target_link_libraries(task_bench PUBLIC OpenMP::OpenMP_CXX)
@@ -50,4 +54,5 @@ if(OPENMP_FOUND)
 #    target_link_libraries(sync_bench PUBLIC OpenMP::OpenMP_CXX)
     target_link_libraries(gpuoffloading_bench PUBLIC OpenMP::OpenMP_CXX)
 #    target_link_libraries(tasktree_bench PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(system_bench PUBLIC OpenMP::OpenMP_CXX)
 endif()

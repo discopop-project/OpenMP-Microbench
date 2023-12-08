@@ -65,12 +65,15 @@ void BenchmarkAll(){
 
 void FirstGpuAction(){
      
-    #pragma omp target 
+    #pragma omp target
     {
         if (omp_is_initial_device()) {
             printf("WARNING! This doesnt seem to be running on a target! \n");
 // TODO: Find a better solution
 //            exit(-1);  Exiting here is not possible, since exiting target regions is not permitted by OpenMP!
+        }
+        else{
+            printf("Executing test on device %d\n", omp_get_device_num());
         }
     }
     // The first task on a GPU can take a lot longer, this prevents it from influencing the measurements
