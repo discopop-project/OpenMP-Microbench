@@ -29,7 +29,7 @@ int main(int argc, char **argv){
 
 
     // export system information to file
-    std::string file_name = "system_information.json";
+    std::string file_name = "system_configuration.json";
     std::ofstream file_stream(file_name, std::ofstream::out);
     file_stream << std::setw(2) << system_information << std::endl;
 
