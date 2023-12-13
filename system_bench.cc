@@ -115,7 +115,7 @@ void get_host_information(int device_id, json &system_information){
     host_device["device_type"] = 0;  // 0 -> CPU, 1 -> GPU
     host_device["processors"] = num_processors;
     host_device["threads"] = max_threads;
-    host_device["frequency"] = frequency;
+    host_device["frequency"] = frequency;  // Hz
     json compute_init_delays;
     compute_init_delays["doall"] = doall_init_costs_s;
     host_device["compute_init_delays"] = compute_init_delays;
@@ -182,7 +182,7 @@ void get_device_information(int device_id, json &system_information){
     device["processors"] = num_processors;
     device["threads"] = max_teams;
     device["teams"] = max_teams;
-    device["frequency"] = frequency;
+    device["frequency"] = frequency;  // Hz
     json compute_init_delays;
     compute_init_delays["target_teams_distribute_parallel_for"] = target_tdpf_init_costs_s;
     device["compute_init_delays"] = compute_init_delays;
@@ -193,8 +193,8 @@ void get_device_information(int device_id, json &system_information){
     transfer_init_delays["average"] = avg_transfer_init_costs_s;
     device["transfer_init_delays"] = transfer_init_delays;
     json transfer_speeds;
-    transfer_speeds["H2D"] = H2D_GBps;
-    transfer_speeds["D2H"] = D2H_GBps;
+    transfer_speeds["H2D_MB/s"] = H2D_GBps * 1000;  // MB/s
+    transfer_speeds["D2H_MB/s"] = D2H_GBps * 1000;  // MB/s
     device["transfer_speeds"] = transfer_speeds;
     system_information["devices"] += device;
 }
