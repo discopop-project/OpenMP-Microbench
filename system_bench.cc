@@ -148,6 +148,7 @@ void get_device_information(int device_id, json &system_information){
     double target_exit_data_init_costs_s = (1*target_exit_data_init_costs.tv_sec + 0.000001*target_exit_data_init_costs.tv_usec);
     timeval target_data_update_init_costs = get_target_data_update_init_costs(device_id);
     double target_data_update_init_costs_s = (1*target_data_update_init_costs.tv_sec + 0.000001*target_data_update_init_costs.tv_usec);
+    double avg_transfer_init_costs_s = (target_enter_data_init_costs_s + target_exit_data_init_costs_s + target_data_update_init_costs_s) / 3;
     //get transfer times
     timeval H2D_1GB_costs = get_H2D_costs_1GB(device_id);
     double H2D_GBps = 1 / (1*((int)H2D_1GB_costs.tv_sec)+ 0.000001*(long(H2D_1GB_costs.tv_usec)));
@@ -166,6 +167,7 @@ void get_device_information(int device_id, json &system_information){
     printf("# - target enter data init delay: %ld.%06ld s\n", target_enter_data_init_costs.tv_sec, target_enter_data_init_costs.tv_usec);
     printf("# - target exit data init delay:  %ld.%06ld s\n", target_exit_data_init_costs.tv_sec, target_exit_data_init_costs.tv_usec);
     printf("# - target data update init delay: %ld.%06ld s\n", target_data_update_init_costs.tv_sec, target_data_update_init_costs.tv_usec);
+    printf("#   - AVG init delay: %f s\n", avg_transfer_init_costs_s);
     printf("# - Copy H2D 1GB time: %ld.%06ld s\n", H2D_1GB_costs.tv_sec, H2D_1GB_costs.tv_usec);
     printf("#   - H2D: %f GB/s\n", H2D_GBps);
     printf("# - Copy D2H 1GB time: %ld.%06ld s\n", D2H_1GB_costs.tv_sec, D2H_1GB_costs.tv_usec);
@@ -188,6 +190,7 @@ void get_device_information(int device_id, json &system_information){
     transfer_init_delays["target_enter_data"] = target_enter_data_init_costs_s;
     transfer_init_delays["target_exit_data"] = target_exit_data_init_costs_s;
     transfer_init_delays["target_data_update"] = target_data_update_init_costs_s;
+    transfer_init_delays["average"] = avg_transfer_init_costs_s;
     device["transfer_init_delays"] = transfer_init_delays;
     json transfer_speeds;
     transfer_speeds["H2D"] = H2D_GBps;
