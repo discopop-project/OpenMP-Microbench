@@ -112,6 +112,7 @@ void get_host_information(int device_id, json &system_information){
     // add information to json
     json host_device;
     host_device["device_id"] = device_id;
+    host_device["device_type"] = 0;  // 0 -> CPU, 1 -> GPU
     host_device["processors"] = num_processors;
     host_device["threads"] = max_threads;
     host_device["frequency"] = frequency;
@@ -175,6 +176,7 @@ void get_device_information(int device_id, json &system_information){
     // add information to json
     json device;
     device["device_id"] = device_id;
+    device["device_type"] = 1;  // 0 -> CPU, 1 -> GPU
     device["processors"] = num_processors;
     device["threads"] = max_teams;
     device["teams"] = max_teams;
