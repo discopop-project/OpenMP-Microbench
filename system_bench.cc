@@ -117,8 +117,8 @@ void get_host_information(int device_id, json &system_information){
     host_device["threads"] = max_threads;
     host_device["frequency"] = frequency;  // Hz
     json compute_init_delays;
-    compute_init_delays["doall"] = doall_init_costs_s;
-    host_device["compute_init_delays"] = compute_init_delays;
+    compute_init_delays["doall"] = doall_init_costs_s * 1000000;
+    host_device["compute_init_delays[us]"] = compute_init_delays;
     system_information["devices"] += host_device;
 }
 
@@ -184,14 +184,14 @@ void get_device_information(int device_id, json &system_information){
     device["teams"] = max_teams;
     device["frequency"] = frequency;  // Hz
     json compute_init_delays;
-    compute_init_delays["target_teams_distribute_parallel_for"] = target_tdpf_init_costs_s;
-    device["compute_init_delays"] = compute_init_delays;
+    compute_init_delays["target_teams_distribute_parallel_for"] = target_tdpf_init_costs_s * 1000000;
+    device["compute_init_delays[us]"] = compute_init_delays;
     json transfer_init_delays;
-    transfer_init_delays["target_enter_data"] = target_enter_data_init_costs_s;
-    transfer_init_delays["target_exit_data"] = target_exit_data_init_costs_s;
-    transfer_init_delays["target_data_update"] = target_data_update_init_costs_s;
-    transfer_init_delays["average"] = avg_transfer_init_costs_s;
-    device["transfer_init_delays"] = transfer_init_delays;
+    transfer_init_delays["target_enter_data"] = target_enter_data_init_costs_s * 1000000;
+    transfer_init_delays["target_exit_data"] = target_exit_data_init_costs_s * 1000000;
+    transfer_init_delays["target_data_update"] = target_data_update_init_costs_s * 1000000;
+    transfer_init_delays["average"] = avg_transfer_init_costs_s * 1000000;
+    device["transfer_init_delays[us]"] = transfer_init_delays;
     json transfer_speeds;
     transfer_speeds["H2D_MB/s"] = H2D_GBps * 1000;  // MB/s
     transfer_speeds["D2H_MB/s"] = D2H_GBps * 1000;  // MB/s
