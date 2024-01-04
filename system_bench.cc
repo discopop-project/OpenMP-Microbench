@@ -148,7 +148,7 @@ void get_device_information(int device_id, json &system_information){
     double target_exit_data_init_costs_s = (1*target_exit_data_init_costs.tv_sec + 0.000001*target_exit_data_init_costs.tv_usec);
     timeval target_data_update_init_costs = get_target_data_update_init_costs(device_id);
     double target_data_update_init_costs_s = (1*target_data_update_init_costs.tv_sec + 0.000001*target_data_update_init_costs.tv_usec);
-    double avg_transfer_init_costs_s = (target_enter_data_init_costs_s + target_exit_data_init_costs_s + target_data_update_init_costs_s) / 3;
+    double avg_transfer_init_costs_s = (target_enter_data_init_costs_s + target_data_update_init_costs_s) / 2;
     //get transfer times
     timeval H2D_1GB_costs = get_H2D_costs_1GB(device_id);
     double H2D_GBps = 1 / (1*((int)H2D_1GB_costs.tv_sec)+ 0.000001*(long(H2D_1GB_costs.tv_usec)));
