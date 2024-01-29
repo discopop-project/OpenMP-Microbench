@@ -10,6 +10,10 @@ using json = nlohmann::json;
 
 std::string bench_name = "SYSTEM";
 
+double global_seq_execution_time_s = 0;
+int n = 5;
+
+
 int main(int argc, char **argv){
 
     PrintCompilerVersion();
@@ -91,12 +95,25 @@ void get_host_information(int device_id, json &system_information){
         num_processors = omp_get_num_procs();
         max_threads = omp_get_max_threads();
     }
-    // get benchmark execution time
-    timeval seq_execution_time = get_sequential_computation_time();
-    double seq_execution_time_s = (1*seq_execution_time.tv_sec + 0.000001*seq_execution_time.tv_usec);
-    timeval doall_execution_time = get_doall_computation_time();
-    double doall_execution_time_s = (1*doall_execution_time.tv_sec + 0.000001*doall_execution_time.tv_usec);
-    double doall_speedup = seq_execution_time_s / doall_execution_time_s;
+    // get average benchmark execution time
+
+    global_seq_execution_time_s = 0;
+    for(int i = 0; i < n; i++){
+        timeval seq_execution_time = get_sequential_computation_time();
+        global_seq_execution_time_s += (1*seq_execution_time.tv_sec + 0.000001*seq_execution_time.tv_usec);
+    }
+    global_seq_execution_time_s = global_seq_execution_time_s / n;
+
+    double doall_execution_time_s = 0;
+    for(int i = 0; i < n; i++){
+        timeval doall_execution_time = get_doall_computation_time();
+        doall_execution_time_s += (1*doall_execution_time.tv_sec + 0.000001*doall_execution_time.tv_usec);
+    }
+    doall_execution_time_s = doall_execution_time_s / n;
+    
+
+
+    double doall_speedup = global_seq_execution_time_s / doall_execution_time_s;
     timeval doall_init_costs = get_doall_init_costs();
     double doall_init_costs_s = (1*((int)doall_init_costs.tv_sec)+ 0.000001*(long(doall_init_costs.tv_usec)));
     // print stats
@@ -105,8 +122,8 @@ void get_host_information(int device_id, json &system_information){
     printf("# - threads: %d\n", max_threads);
     printf("# - frequency (hardcoded): %ld Hz\n", frequency);
     printf("# - doall init delay: %f s\n", doall_init_costs_s);
-    printf("# - sequential execution time: %f\n", seq_execution_time_s);
-    printf("# - doall execution time: %f\n", doall_execution_time_s);
+    printf("# - AVG sequential execution time: %f\n", global_seq_execution_time_s);
+    printf("# - AVG doall execution time: %f\n", doall_execution_time_s);
     printf("#   - speedup: %f\n", doall_speedup);
     printf("\n");
     // add information to json
@@ -116,6 +133,7 @@ void get_host_information(int device_id, json &system_information){
     host_device["processors"] = num_processors;
     host_device["threads"] = max_threads;
     host_device["frequency"] = frequency;  // Hz
+    host_device["speedup"] = doall_speedup;
     json compute_init_delays;
     compute_init_delays["doall"] = doall_init_costs_s * 1000000;
     host_device["compute_init_delays[us]"] = compute_init_delays;
@@ -154,9 +172,15 @@ void get_device_information(int device_id, json &system_information){
     double H2D_GBps = 1 / (1*((int)H2D_1GB_costs.tv_sec)+ 0.000001*(long(H2D_1GB_costs.tv_usec)));
     timeval D2H_1GB_costs = get_D2H_costs_1GB(device_id);
     double D2H_GBps = 1 / (1*D2H_1GB_costs.tv_sec + 0.000001*D2H_1GB_costs.tv_usec);
-    // get benchmark execution time
-    timeval device_execution_time = get_device_computation_time(device_id);
-    double device_execution_time_s = (1*device_execution_time.tv_sec + 0.000001*device_execution_time.tv_usec);
+    // get average benchmark execution time
+    double device_execution_time_s = 0;
+    for(int i = 0; i < n; i++){
+        timeval device_execution_time = get_device_computation_time(device_id);
+        device_execution_time_s += (1*device_execution_time.tv_sec + 0.000001*device_execution_time.tv_usec);
+    }
+    device_execution_time_s = device_execution_time_s / n;
+    
+    double device_speedup = global_seq_execution_time_s / device_execution_time_s;
 
     // print stats
     printf("# DEVICE: %d\n", device_id);
@@ -172,7 +196,8 @@ void get_device_information(int device_id, json &system_information){
     printf("#   - H2D: %f GB/s\n", H2D_GBps);
     printf("# - Copy D2H 1GB time: %ld.%06ld s\n", D2H_1GB_costs.tv_sec, D2H_1GB_costs.tv_usec);
     printf("#   - D2H: %f GB/s\n", D2H_GBps);
-    printf("# - execution time: %f\n", device_execution_time_s);
+    printf("# - AVG execution time: %f\n", device_execution_time_s);
+    printf("#   - speedup: %f\n", device_speedup);
     printf("\n");
 
     // add information to json
@@ -183,6 +208,7 @@ void get_device_information(int device_id, json &system_information){
     device["threads"] = max_teams;
     device["teams"] = max_teams;
     device["frequency"] = frequency;  // Hz
+    device["speedup"] = device_speedup;
     json compute_init_delays;
     compute_init_delays["target_teams_distribute_parallel_for"] = target_tdpf_init_costs_s * 1000000;
     device["compute_init_delays[us]"] = compute_init_delays;
