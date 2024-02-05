@@ -12,6 +12,8 @@ void get_system_information(json &system_information);
 void get_device_information(int device_id, json &system_information);
 void get_host_information(int device_id, json &system_information);
 
+void prepare_execution_environment();
+
 timeval get_doall_init_costs();
 timeval get_target_teams_distribute_parallel_for_init_costs(int device_id);
 

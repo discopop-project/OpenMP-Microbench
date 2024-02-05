@@ -77,10 +77,23 @@ void get_system_information(json &system_information){
     system_information["devices"] = json::array({});
     system_information["host_device"] = omp_get_initial_device();
 
+    // setup environment to ensure not skewing the results
+    prepare_execution_environment();
+
     get_host_information(omp_get_initial_device(), system_information);
 
     for(int device_id = 0; device_id < omp_get_num_devices(); device_id++){
         get_device_information(device_id, system_information);
+    }
+}
+
+void prepare_execution_environment(){
+    for(int i = 0; i < n; i++){
+        get_sequential_computation_time();
+    }
+
+    for(int i = 0; i < n; i++){
+        get_doall_computation_time();
     }
 }
 
